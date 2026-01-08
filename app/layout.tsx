@@ -1,6 +1,8 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter, JetBrains_Mono } from "next/font/google"
+import { Suspense } from "react"
+import { ErrorBoundary } from "@/components/error-boundary"
 import "./globals.css"
 
 const inter = Inter({
@@ -14,19 +16,21 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "EdgeAI Carousel - AI-Powered Carousel Ad Creator",
+  title: "EdgeAI Carousel Creator",
   description:
-    "Create stunning carousel ads with AI. Upload your character, choose an art style, add text overlays, and generate professional carousel content for Instagram and TikTok.",
+    "Generate character-consistent carousel ads with AI. Upload a hero image and create stunning multi-slide carousels with video output.",
   keywords: [
-    "carousel creator",
+    "AI carousel",
+    "carousel generator",
     "AI image generation",
-    "Instagram carousel",
-    "TikTok carousel",
+    "character consistent",
     "social media ads",
-    "AI art generator",
-    "character consistency",
-    "RealTPO",
+    "video carousel",
   ],
+  robots: {
+    index: false,
+    follow: false,
+  },
 }
 
 export const viewport = {
@@ -52,8 +56,10 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="font-mono antialiased" style={{ backgroundColor: "#000000" }}>
-        {children}
+      <body className="font-sans antialiased" style={{ backgroundColor: "#000000" }}>
+        <ErrorBoundary>
+          <Suspense fallback={null}>{children}</Suspense>
+        </ErrorBoundary>
       </body>
     </html>
   )

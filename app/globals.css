@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* All black theme */
+  /* Changed to all black theme */
   --background: #000000;
   --foreground: #ffffff;
   --card: #000000;
@@ -24,13 +24,15 @@
   --border: #333333;
   --input: #000000;
   --ring: #ffffff;
+  /* Removed chart-* variables - chart component deleted */
   --radius: 0rem;
+  /* Removed sidebar-* variables - sidebar component deleted */
   --font-inter: "Inter", sans-serif;
   --font-jetbrains-mono: "JetBrains Mono", monospace;
 }
 
 .dark {
-  /* Dark mode same as light - everything is black */
+  /* Dark mode now same as light mode since everything is black */
   --background: #000000;
   --foreground: #ffffff;
   --card: #000000;
@@ -50,11 +52,14 @@
   --border: #333333;
   --input: #000000;
   --ring: #ffffff;
+  /* Removed chart-* variables - chart component deleted */
+  /* Removed sidebar-* variables - sidebar component deleted */
   --font-inter: "Inter", sans-serif;
   --font-jetbrains-mono: "JetBrains Mono", monospace;
 }
 
 @theme inline {
+  /* Updated font variables to use new Inter and JetBrains Mono fonts */
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);
   --color-background: var(--background);
@@ -76,27 +81,30 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  /* Removed chart color mappings - chart component deleted */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  /* Removed sidebar color mappings - sidebar component deleted */
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-
+  
+  /* Force black background on html and body to prevent flashes */
   html {
     background-color: #000000 !important;
   }
-
+  
   body {
     @apply bg-background text-foreground;
     background-color: #000000 !important;
   }
-
-  /* Optimize background shader rendering */
+  
+  /* Optimize background shader rendering with containment and hardware acceleration */
   .shader-background {
     contain: layout style paint;
     will-change: transform;
@@ -104,11 +112,19 @@
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
   }
-
+  
+  /* Enhanced smooth transitions for auth state changes */
   .smooth-transition {
     transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
   }
-
+  
+  /* Prevent layout shift during auth transitions */
+  .auth-persist {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Optimize rendering performance for dropdowns and overlays */
   .dropdown-content,
   .dialog-content,
   .popover-content {
@@ -117,12 +133,13 @@
   }
 }
 
+/* Add CSS for preventing content jump during state changes */
 @layer utilities {
   .prevent-shift {
     min-height: 100vh;
     position: relative;
   }
-
+  
   .gpu-accelerate {
     transform: translateZ(0);
     backface-visibility: hidden;
