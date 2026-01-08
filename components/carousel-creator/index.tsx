@@ -27,6 +27,11 @@ const DEFAULT_SLIDE_COUNT = 6
 
 const MemoizedDithering = memo(Dithering)
 
+// Email validation helper
+const isValidEmail = (email: string): boolean => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
 function generateSlideContents(count: number): SlideContent[] {
   return Array.from({ length: count }, (_, i) => ({
     id: `slide-${i + 1}`,
@@ -240,7 +245,7 @@ export function CarouselCreator() {
     }
   }
 
-  const canGenerate = heroImage !== null && !isGenerating
+  const canGenerate = heroImage !== null && !isGenerating && isValidEmail(recipientEmail.trim())
 
   return (
     <div className="min-h-screen bg-black text-white relative">
@@ -384,18 +389,26 @@ export function CarouselCreator() {
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <Mail className="size-5 text-gray-400" />
-                        <h3 className="font-medium">Email Results</h3>
+                        <h3 className="font-medium">Email Results <span className="text-red-400">*</span></h3>
                       </div>
                       <p className="text-sm text-gray-400">
                         Receive your carousel images and video via email when generation completes.
                       </p>
                       <input
                         type="email"
-                        placeholder="your@email.com (optional)"
+                        placeholder="your@email.com (required)"
                         value={recipientEmail}
                         onChange={(e) => setRecipientEmail(e.target.value)}
-                        className="w-full px-3 py-2 bg-black/50 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:border-white/50 focus:outline-none transition-colors"
+                        className={cn(
+                          "w-full px-3 py-2 bg-black/50 border rounded-lg text-white placeholder-gray-500 focus:outline-none transition-colors",
+                          recipientEmail && !isValidEmail(recipientEmail)
+                            ? "border-red-400/50 focus:border-red-400"
+                            : "border-white/20 focus:border-white/50"
+                        )}
                       />
+                      {recipientEmail && !isValidEmail(recipientEmail) && (
+                        <p className="text-xs text-red-400">Please enter a valid email address</p>
+                      )}
                     </div>
                   </section>
                 </TabsContent>

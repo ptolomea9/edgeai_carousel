@@ -65,9 +65,10 @@ lib/
 Two main workflows handle generation:
 
 1. **Static Workflow** (ID: `UvvlI6vB4ystc3Vr`)
-   - Generates character-consistent slide images
+   - Generates character-consistent slide images using Nano Banana Pro (kie.ai)
    - Uses `responseMode: "lastNode"` for synchronous response
    - Includes retry logic for failed slides
+   - **English-only enforcement**: Prompts include strict language requirements at the top to prevent non-English text generation
 
 2. **Video Workflow** (ID: `0MpzxUS4blJI7vgm`)
    - Animates slides using kie.ai (Wan 2.6 model)
@@ -75,8 +76,9 @@ Two main workflows handle generation:
    - Uses `responseMode: "onReceived"` (async)
 
 ### APIs Used
-- **kie.ai**: Image-to-video animation (Wan 2.6 model)
+- **kie.ai**: Image generation (Nano Banana Pro) and image-to-video animation (Wan 2.6 model)
 - **json2video**: Video concatenation with transitions
+- **OpenAI GPT-4o**: Hero image analysis for character consistency
 - **Supabase Storage**: Buckets for `carousel-images` and `carousel-videos`
 
 ## Environment Variables
