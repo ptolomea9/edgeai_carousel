@@ -50,6 +50,60 @@ export interface GenerationWithSlides extends Generation {
   slides: Slide[]
 }
 
+// Helper to upload base64 image to Supabase Storage
+export async function uploadBase64Image(
+  base64Data: string,
+  bucket: string,
+  path: string
+): Promise<string | null> {
+  if (!isConfigured) {
+    console.warn('Supabase not configured, skipping base64 image upload')
+    return null
+  }
+
+  try {
+    const client = getClient()
+
+    // Extract the base64 content and mime type
+    const matches = base64Data.match(/^data:([^;]+);base64,(.+)$/)
+    if (!matches) {
+      console.error('Invalid base64 data format')
+      return null
+    }
+
+    const mimeType = matches[1]
+    const base64Content = matches[2]
+
+    // Convert base64 to Uint8Array
+    const binaryString = atob(base64Content)
+    const bytes = new Uint8Array(binaryString.length)
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i)
+    }
+
+    // Upload to Supabase Storage
+    const { error } = await client.storage.from(bucket).upload(path, bytes, {
+      contentType: mimeType,
+      upsert: true,
+    })
+
+    if (error) {
+      console.error('Supabase base64 upload error:', error)
+      return null
+    }
+
+    // Get public URL
+    const { data: publicUrlData } = client.storage
+      .from(bucket)
+      .getPublicUrl(path)
+
+    return publicUrlData.publicUrl
+  } catch (error) {
+    console.error('uploadBase64Image error:', error)
+    return null
+  }
+}
+
 // Helper to upload image from URL to Supabase Storage
 export async function uploadImageFromUrl(
   url: string,

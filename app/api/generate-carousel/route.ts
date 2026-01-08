@@ -5,7 +5,7 @@ import {
   setGenerationStatus,
   type N8nWebhookPayload,
 } from '@/lib/n8n'
-import { createGeneration } from '@/lib/supabase'
+import { createGeneration, uploadBase64Image } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,13 +32,36 @@ export async function POST(request: NextRequest) {
     setGenerationStatus(generationId, {
       status: 'analyzing',
       progress: 0,
+      message: 'Uploading hero image...',
+    })
+
+    // Upload hero image to Supabase Storage if it's base64
+    let heroImageUrl = payload.heroImage
+    if (payload.heroImage.startsWith('data:')) {
+      const uploadedUrl = await uploadBase64Image(
+        payload.heroImage,
+        'carousel-images',
+        `${generationId}/hero.jpg`
+      )
+      if (uploadedUrl) {
+        heroImageUrl = uploadedUrl
+        console.log(`Uploaded hero image to: ${heroImageUrl}`)
+      } else {
+        console.warn('Failed to upload hero image, using base64 fallback')
+      }
+    }
+
+    // Update status
+    setGenerationStatus(generationId, {
+      status: 'analyzing',
+      progress: 5,
       message: 'Starting generation...',
     })
 
     // Also create record in Supabase for persistence
     createGeneration({
       generation_id: generationId,
-      hero_image_url: payload.heroImage,
+      hero_image_url: heroImageUrl,
       art_style: payload.artStyle,
       slide_count: payload.slideCount,
       status: 'generating',
@@ -50,6 +73,7 @@ export async function POST(request: NextRequest) {
     // Trigger n8n webhook (async - don't await)
     triggerCarouselGeneration({
       ...payload,
+      heroImage: heroImageUrl,
       generationId,
     }).catch((error) => {
       console.error('n8n webhook error:', error)
