@@ -31,14 +31,14 @@ export function GenerationCard({
     <button
       onClick={onClick}
       className={cn(
-        'group relative bg-black/50 border border-gray-800 overflow-hidden',
-        'hover:border-gray-600 transition-all duration-200',
+        'group relative bg-black/70 border border-white/10 rounded-lg overflow-hidden backdrop-blur-sm',
+        'hover:border-white/30 hover:bg-black/80 transition-all duration-200',
         'text-left w-full',
         className
       )}
     >
       {/* Thumbnail */}
-      <div className="relative aspect-square bg-gray-900">
+      <div className="relative aspect-square bg-gray-900 rounded-t-lg overflow-hidden">
         {firstSlide?.image_url ? (
           <Image
             src={firstSlide.image_url}
@@ -60,14 +60,14 @@ export function GenerationCard({
 
         {/* Video indicator */}
         {hasVideo && (
-          <div className="absolute top-2 right-2 bg-black/70 px-2 py-1 flex items-center gap-1">
+          <div className="absolute top-2 right-2 bg-black/80 px-2 py-1 rounded-md flex items-center gap-1">
             <Play className="size-3 fill-white" />
             <span className="text-xs">Video</span>
           </div>
         )}
 
         {/* Slide count badge */}
-        <div className="absolute bottom-2 left-2 bg-black/70 px-2 py-1">
+        <div className="absolute bottom-2 left-2 bg-black/80 px-2 py-1 rounded-md">
           <span className="text-xs">{generation.slide_count} slides</span>
         </div>
       </div>

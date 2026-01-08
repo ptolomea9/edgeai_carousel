@@ -67,16 +67,16 @@ export function GenerationDetail({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors"
+        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/10"
       >
         <X className="size-6" />
       </button>
 
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-6 bg-black/70 border border-white/10 rounded-lg p-6 backdrop-blur-sm">
         {/* Main viewer */}
         <div className="lg:col-span-2 space-y-4">
           {/* Toggle between slides and video */}
@@ -87,9 +87,10 @@ export function GenerationDetail({
                 size="sm"
                 onClick={() => setShowVideo(false)}
                 className={cn(
+                  'rounded-lg',
                   !showVideo
                     ? 'bg-white text-black'
-                    : 'bg-black/50 border-gray-700 text-gray-300'
+                    : 'bg-black/50 border-white/20 text-gray-300'
                 )}
               >
                 <Images className="size-4 mr-2" />
@@ -100,9 +101,10 @@ export function GenerationDetail({
                 size="sm"
                 onClick={() => setShowVideo(true)}
                 className={cn(
+                  'rounded-lg',
                   showVideo
                     ? 'bg-white text-black'
-                    : 'bg-black/50 border-gray-700 text-gray-300'
+                    : 'bg-black/50 border-white/20 text-gray-300'
                 )}
               >
                 <Play className="size-4 mr-2" />
@@ -112,7 +114,7 @@ export function GenerationDetail({
           )}
 
           {/* Viewer area */}
-          <div className="relative aspect-square bg-gray-900 border border-gray-800">
+          <div className="relative aspect-square bg-gray-900 border border-white/10 rounded-lg overflow-hidden">
             {showVideo && generation.video_url ? (
               <video
                 src={generation.video_url}
@@ -136,13 +138,13 @@ export function GenerationDetail({
                   <>
                     <button
                       onClick={prevSlide}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 transition-colors"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/70 hover:bg-black/90 transition-colors rounded-lg"
                     >
                       <ChevronLeft className="size-6" />
                     </button>
                     <button
                       onClick={nextSlide}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 transition-colors"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/70 hover:bg-black/90 transition-colors rounded-lg"
                     >
                       <ChevronRight className="size-6" />
                     </button>
@@ -178,10 +180,10 @@ export function GenerationDetail({
                   key={slide.id}
                   onClick={() => setCurrentSlide(index)}
                   className={cn(
-                    'relative flex-shrink-0 w-16 h-16 border-2 overflow-hidden',
+                    'relative flex-shrink-0 w-16 h-16 border-2 overflow-hidden rounded-md',
                     index === currentSlide
                       ? 'border-white'
-                      : 'border-transparent hover:border-gray-600'
+                      : 'border-transparent hover:border-white/40'
                   )}
                 >
                   <Image
@@ -230,7 +232,7 @@ export function GenerationDetail({
           <div className="space-y-2">
             <Button
               onClick={downloadAllImages}
-              className="w-full bg-white text-black hover:bg-gray-200"
+              className="w-full bg-white text-black hover:bg-gray-200 rounded-lg"
             >
               <Download className="size-4 mr-2" />
               Download All Images
@@ -242,7 +244,7 @@ export function GenerationDetail({
                   downloadImage(generation.video_url!, 'carousel-video.mp4')
                 }
                 variant="outline"
-                className="w-full bg-black/50 border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="w-full bg-black/50 border-white/20 text-gray-300 hover:bg-black/70 rounded-lg"
               >
                 <Download className="size-4 mr-2" />
                 Download Video
