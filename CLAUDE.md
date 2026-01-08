@@ -65,18 +65,20 @@ lib/
 Two main workflows handle generation:
 
 1. **Static Workflow** (ID: `UvvlI6vB4ystc3Vr`)
-   - Generates character-consistent slide images using Nano Banana Pro (kie.ai)
+   - Generates character-consistent slide images using **Seedream 4.5-edit** (kie.ai)
+   - True image-to-image generation: passes hero image as reference for character consistency
+   - Output format: **9:16 vertical** (Instagram Reels optimized)
    - Uses `responseMode: "lastNode"` for synchronous response
    - Includes retry logic for failed slides
-   - **English-only enforcement**: Prompts include strict language requirements at the top to prevent non-English text generation
 
 2. **Video Workflow** (ID: `0MpzxUS4blJI7vgm`)
-   - Animates slides using kie.ai (Wan 2.6 model)
-   - Merges clips using json2video API
+   - Animates slides using kie.ai (Wan 2.6 model) at 720p
+   - Merges clips using json2video API at **1080x1920** (9:16 vertical)
+   - Callbacks to production URL: `https://edgeai-carousel.vercel.app/api/status/{id}`
    - Uses `responseMode: "onReceived"` (async)
 
 ### APIs Used
-- **kie.ai**: Image generation (Nano Banana Pro) and image-to-video animation (Wan 2.6 model)
+- **kie.ai**: Image generation (Seedream 4.5-edit with reference images) and image-to-video animation (Wan 2.6 model)
 - **json2video**: Video concatenation with transitions
 - **OpenAI GPT-4o**: Hero image analysis for character consistency
 - **Supabase Storage**: Buckets for `carousel-images` and `carousel-videos`
@@ -102,7 +104,7 @@ OPENAI_API_KEY=your-openai-key
 
 ## Key Data Flow
 
-1. User uploads hero image + configures carousel
+1. User uploads hero image + configures carousel (email is **required**)
 2. `POST /api/generate-carousel` triggers n8n static workflow
 3. n8n generates slides with character consistency
 4. Frontend polls `GET /api/status/{id}` for progress
