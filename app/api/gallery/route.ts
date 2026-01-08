@@ -1,0 +1,40 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getGenerations, getGenerationById } from '@/lib/supabase'
+
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams
+    const id = searchParams.get('id')
+    const limit = parseInt(searchParams.get('limit') || '20', 10)
+    const offset = parseInt(searchParams.get('offset') || '0', 10)
+
+    // If specific ID requested, return single generation
+    if (id) {
+      const generation = await getGenerationById(id)
+      if (!generation) {
+        return NextResponse.json(
+          { error: 'Generation not found' },
+          { status: 404 }
+        )
+      }
+      return NextResponse.json(generation)
+    }
+
+    // Otherwise return paginated list
+    const { data, count } = await getGenerations(limit, offset)
+
+    return NextResponse.json({
+      generations: data,
+      total: count,
+      limit,
+      offset,
+      hasMore: offset + data.length < count,
+    })
+  } catch (error) {
+    console.error('Gallery API error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
