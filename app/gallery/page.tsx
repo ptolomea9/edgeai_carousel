@@ -1,12 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import Link from 'next/link'
+import { Dithering } from '@paper-design/shaders-react'
 import { Loader2, Plus } from 'lucide-react'
 import { GenerationCard } from '@/components/gallery/generation-card'
 import { GenerationDetail } from '@/components/gallery/generation-detail'
 import { Button } from '@/components/ui/button'
 import type { GenerationWithSlides } from '@/lib/supabase'
+
+const MemoizedDithering = memo(Dithering)
 
 export default function GalleryPage() {
   const [generations, setGenerations] = useState<GenerationWithSlides[]>([])
@@ -57,15 +60,32 @@ export default function GalleryPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-black text-white">
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="min-h-screen bg-black text-white relative">
+        {/* Animated shader background */}
+        <div className="fixed inset-0 z-0 shader-background">
+          <MemoizedDithering
+            colorBack="#00000000"
+            colorFront="#005B5B"
+            speed={0.3}
+            shape="wave"
+            type="4x4"
+            pxSize={3}
+            scale={1.13}
+            style={{
+              backgroundColor: '#000000',
+              height: '100vh',
+              width: '100vw',
+            }}
+          />
+        </div>
+        <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
           <h1 className="text-3xl font-bold tracking-tight mb-8">Gallery</h1>
-          <div className="text-center py-12">
+          <div className="text-center py-12 bg-black/70 rounded-lg border border-white/10">
             <p className="text-red-400">{error}</p>
             <Button
               variant="outline"
               onClick={() => fetchGenerations()}
-              className="mt-4"
+              className="mt-4 rounded-lg"
             >
               Try Again
             </Button>
@@ -76,8 +96,27 @@ export default function GalleryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="min-h-screen bg-black text-white relative">
+      {/* Animated shader background */}
+      <div className="fixed inset-0 z-0 shader-background">
+        <MemoizedDithering
+          colorBack="#00000000"
+          colorFront="#005B5B"
+          speed={0.3}
+          shape="wave"
+          type="4x4"
+          pxSize={3}
+          scale={1.13}
+          style={{
+            backgroundColor: '#000000',
+            height: '100vh',
+            width: '100vw',
+          }}
+        />
+      </div>
+
+      {/* Main content */}
+      <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Gallery</h1>
@@ -87,7 +126,7 @@ export default function GalleryPage() {
           </div>
           <Link
             href="/"
-            className="flex items-center gap-2 px-4 py-2 bg-white text-black hover:bg-gray-200 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-all shadow-lg shadow-white/10"
           >
             <Plus className="size-4" />
             Create New
@@ -95,11 +134,11 @@ export default function GalleryPage() {
         </div>
 
         {isLoading && generations.length === 0 ? (
-          <div className="flex items-center justify-center py-24">
+          <div className="flex items-center justify-center py-24 bg-black/70 rounded-lg border border-white/10">
             <Loader2 className="size-8 animate-spin text-gray-400" />
           </div>
         ) : generations.length === 0 ? (
-          <div className="text-center py-24">
+          <div className="text-center py-24 bg-black/70 rounded-lg border border-white/10">
             <p className="text-gray-400 text-lg">No generations yet</p>
             <p className="text-gray-500 text-sm mt-2">
               Create your first carousel to see it here
@@ -123,7 +162,7 @@ export default function GalleryPage() {
                   variant="outline"
                   onClick={loadMore}
                   disabled={isLoading}
-                  className="bg-black/50 border-gray-700 text-gray-300 hover:bg-gray-800"
+                  className="bg-black/70 border-white/20 text-gray-300 hover:bg-black/90 hover:border-white/40 rounded-lg"
                 >
                   {isLoading ? (
                     <>
@@ -138,6 +177,11 @@ export default function GalleryPage() {
             )}
           </>
         )}
+
+        {/* Footer */}
+        <div className="mt-8 pt-6 border-t border-white/10 text-center text-sm text-gray-500">
+          Powered by EdgeAI Media
+        </div>
       </div>
 
       {selectedGeneration && (

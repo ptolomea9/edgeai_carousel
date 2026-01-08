@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, memo } from 'react'
 import Link from 'next/link'
+import { Dithering } from '@paper-design/shaders-react'
 import { Loader2, Sparkles, Images, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -23,6 +24,8 @@ import type {
 } from './types'
 
 const DEFAULT_SLIDE_COUNT = 6
+
+const MemoizedDithering = memo(Dithering)
 
 function generateSlideContents(count: number): SlideContent[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -240,8 +243,27 @@ export function CarouselCreator() {
   const canGenerate = heroImage !== null && !isGenerating
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="min-h-screen bg-black text-white relative">
+      {/* Animated shader background */}
+      <div className="fixed inset-0 z-0 shader-background">
+        <MemoizedDithering
+          colorBack="#00000000"
+          colorFront="#005B5B"
+          speed={0.3}
+          shape="wave"
+          type="4x4"
+          pxSize={3}
+          scale={1.13}
+          style={{
+            backgroundColor: '#000000',
+            height: '100vh',
+            width: '100vw',
+          }}
+        />
+      </div>
+
+      {/* Main content */}
+      <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
@@ -254,7 +276,7 @@ export function CarouselCreator() {
           </div>
           <Link
             href="/gallery"
-            className="flex items-center gap-2 px-4 py-2 bg-black/50 border border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-black/70 border border-white/20 rounded-lg text-gray-300 hover:bg-black/90 hover:text-white hover:border-white/40 transition-all"
           >
             <Images className="size-4" />
             Gallery
@@ -262,11 +284,11 @@ export function CarouselCreator() {
         </div>
 
         {/* Main Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column - Configuration */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Hero Image Upload */}
-            <section className="p-4 border border-gray-800 bg-black/50">
+            <section className="p-5 bg-black/70 border border-white/10 rounded-lg backdrop-blur-sm">
               <HeroImageUpload
                 onImageSelect={handleHeroImageSelect}
                 onImageClear={handleHeroImageRemove}
@@ -275,118 +297,120 @@ export function CarouselCreator() {
             </section>
 
             {/* Tabs for Configuration */}
-            <Tabs defaultValue="content" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-black border border-gray-800">
-                <TabsTrigger
-                  value="content"
-                  className="data-[state=active]:bg-white data-[state=active]:text-black"
-                >
-                  Content
-                </TabsTrigger>
-                <TabsTrigger
-                  value="style"
-                  className="data-[state=active]:bg-white data-[state=active]:text-black"
-                >
-                  Style
-                </TabsTrigger>
-                <TabsTrigger
-                  value="output"
-                  className="data-[state=active]:bg-white data-[state=active]:text-black"
-                >
-                  Output
-                </TabsTrigger>
-              </TabsList>
+            <div className="bg-black/70 border border-white/10 rounded-lg backdrop-blur-sm p-4">
+              <Tabs defaultValue="content" className="w-full">
+                <TabsList className="grid w-full grid-cols-3 bg-black/50 border border-white/10 rounded-lg p-1">
+                  <TabsTrigger
+                    value="content"
+                    className="rounded-md data-[state=active]:bg-white data-[state=active]:text-black transition-all"
+                  >
+                    Content
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="style"
+                    className="rounded-md data-[state=active]:bg-white data-[state=active]:text-black transition-all"
+                  >
+                    Style
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="output"
+                    className="rounded-md data-[state=active]:bg-white data-[state=active]:text-black transition-all"
+                  >
+                    Output
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* Content Tab */}
-              <TabsContent value="content" className="mt-4 space-y-6">
-                <section className="p-4 border border-gray-800 bg-black/50">
-                  <SlideCountSelector
-                    value={slideCount}
-                    onChange={handleSlideCountChange}
-                  />
-                </section>
-
-                <section className="p-4 border border-gray-800 bg-black/50">
-                  <SlideTextEditor
-                    slides={slides}
-                    onChange={setSlides}
-                    topic={topic}
-                    onTopicChange={setTopic}
-                    onAutoGenerate={handleAutoGenerate}
-                    isGenerating={isGeneratingText}
-                  />
-                </section>
-
-                <section className="p-4 border border-gray-800 bg-black/50">
-                  <BrandingOptions
-                    brandingText={brandingText}
-                    onBrandingTextChange={setBrandingText}
-                    brandingPosition={brandingPosition}
-                    onBrandingPositionChange={setBrandingPosition}
-                    includeBranding={includeBranding}
-                    onIncludeBrandingChange={setIncludeBranding}
-                  />
-                </section>
-              </TabsContent>
-
-              {/* Style Tab */}
-              <TabsContent value="style" className="mt-4 space-y-6">
-                <section className="p-4 border border-gray-800 bg-black/50">
-                  <ArtStylePicker
-                    value={artStyle}
-                    onChange={setArtStyle}
-                    customPrompt={customStylePrompt}
-                    onCustomPromptChange={setCustomStylePrompt}
-                  />
-                </section>
-              </TabsContent>
-
-              {/* Output Tab */}
-              <TabsContent value="output" className="mt-4 space-y-6">
-                <section className="p-4 border border-gray-800 bg-black/50">
-                  <OutputOptions value={outputType} onChange={setOutputType} />
-                </section>
-
-                {(outputType === 'video' || outputType === 'both') && (
-                  <section className="p-4 border border-gray-800 bg-black/50">
-                    <MusicLibrary
-                      selectedTrackId={selectedMusicTrackId}
-                      onSelectTrack={setSelectedMusicTrackId}
+                {/* Content Tab */}
+                <TabsContent value="content" className="mt-4 space-y-4">
+                  <section className="p-4 bg-black/50 border border-white/10 rounded-lg">
+                    <SlideCountSelector
+                      value={slideCount}
+                      onChange={handleSlideCountChange}
                     />
                   </section>
-                )}
 
-                {/* Email Notification */}
-                <section className="p-4 border border-gray-800 bg-black/50">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Mail className="size-5 text-gray-400" />
-                      <h3 className="font-medium">Email Results</h3>
-                    </div>
-                    <p className="text-sm text-gray-400">
-                      Receive your carousel images and video via email when generation completes.
-                    </p>
-                    <input
-                      type="email"
-                      placeholder="your@email.com (optional)"
-                      value={recipientEmail}
-                      onChange={(e) => setRecipientEmail(e.target.value)}
-                      className="w-full px-3 py-2 bg-black border border-gray-700 text-white placeholder-gray-500 focus:border-white focus:outline-none transition-colors"
+                  <section className="p-4 bg-black/50 border border-white/10 rounded-lg">
+                    <SlideTextEditor
+                      slides={slides}
+                      onChange={setSlides}
+                      topic={topic}
+                      onTopicChange={setTopic}
+                      onAutoGenerate={handleAutoGenerate}
+                      isGenerating={isGeneratingText}
                     />
-                  </div>
-                </section>
-              </TabsContent>
-            </Tabs>
+                  </section>
+
+                  <section className="p-4 bg-black/50 border border-white/10 rounded-lg">
+                    <BrandingOptions
+                      brandingText={brandingText}
+                      onBrandingTextChange={setBrandingText}
+                      brandingPosition={brandingPosition}
+                      onBrandingPositionChange={setBrandingPosition}
+                      includeBranding={includeBranding}
+                      onIncludeBrandingChange={setIncludeBranding}
+                    />
+                  </section>
+                </TabsContent>
+
+                {/* Style Tab */}
+                <TabsContent value="style" className="mt-4 space-y-4">
+                  <section className="p-4 bg-black/50 border border-white/10 rounded-lg">
+                    <ArtStylePicker
+                      value={artStyle}
+                      onChange={setArtStyle}
+                      customPrompt={customStylePrompt}
+                      onCustomPromptChange={setCustomStylePrompt}
+                    />
+                  </section>
+                </TabsContent>
+
+                {/* Output Tab */}
+                <TabsContent value="output" className="mt-4 space-y-4">
+                  <section className="p-4 bg-black/50 border border-white/10 rounded-lg">
+                    <OutputOptions value={outputType} onChange={setOutputType} />
+                  </section>
+
+                  {(outputType === 'video' || outputType === 'both') && (
+                    <section className="p-4 bg-black/50 border border-white/10 rounded-lg">
+                      <MusicLibrary
+                        selectedTrackId={selectedMusicTrackId}
+                        onSelectTrack={setSelectedMusicTrackId}
+                      />
+                    </section>
+                  )}
+
+                  {/* Email Notification */}
+                  <section className="p-4 bg-black/50 border border-white/10 rounded-lg">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Mail className="size-5 text-gray-400" />
+                        <h3 className="font-medium">Email Results</h3>
+                      </div>
+                      <p className="text-sm text-gray-400">
+                        Receive your carousel images and video via email when generation completes.
+                      </p>
+                      <input
+                        type="email"
+                        placeholder="your@email.com (optional)"
+                        value={recipientEmail}
+                        onChange={(e) => setRecipientEmail(e.target.value)}
+                        className="w-full px-3 py-2 bg-black/50 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:border-white/50 focus:outline-none transition-colors"
+                      />
+                    </div>
+                  </section>
+                </TabsContent>
+              </Tabs>
+            </div>
 
             {/* Generate Button */}
             <Button
               onClick={handleGenerate}
               disabled={!canGenerate}
               className={cn(
-                'w-full h-12 text-lg font-semibold transition-all',
+                'w-full h-14 text-lg font-semibold rounded-lg transition-all',
                 canGenerate
-                  ? 'bg-white text-black hover:bg-gray-200'
-                  : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                  ? 'bg-white text-black hover:bg-gray-200 shadow-lg shadow-white/10'
+                  : 'bg-gray-800/50 text-gray-500 cursor-not-allowed'
               )}
             >
               {isGenerating ? (
@@ -405,13 +429,18 @@ export function CarouselCreator() {
 
           {/* Right Column - Preview */}
           <div className="lg:sticky lg:top-8 lg:self-start">
-            <section className="p-4 border border-gray-800 bg-black/50">
+            <section className="p-5 bg-black/70 border border-white/10 rounded-lg backdrop-blur-sm">
               <CarouselPreview
                 status={generationStatus}
                 className="min-h-[500px]"
               />
             </section>
           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-8 pt-6 border-t border-white/10 text-center text-sm text-gray-500">
+          Powered by EdgeAI Media
         </div>
       </div>
     </div>
