@@ -58,10 +58,11 @@ export async function POST(request: NextRequest) {
       const imageGenerationPrompt = `Generate a high-quality image based on this description: ${prompt}. The image should be visually appealing and match the description as closely as possible.`
 
       const response = await genAI.models.generateContent({
-        model: "gemini-2.0-flash-exp-image-generation",
+        model: "gemini-3-pro-image-preview",
         contents: imageGenerationPrompt,
         config: {
           responseModalities: ["Text", "Image"],
+          aspectRatio: "1:1",
         },
       })
 
@@ -149,7 +150,7 @@ export async function POST(request: NextRequest) {
       const editingPrompt = `${prompt}. Edit or transform this image based on the instructions.`
 
       const response = await genAI.models.generateContent({
-        model: "gemini-2.0-flash-exp-image-generation",
+        model: "gemini-3-pro-image-preview",
         contents: [
           {
             role: "user",
@@ -168,6 +169,7 @@ export async function POST(request: NextRequest) {
         ],
         config: {
           responseModalities: ["Text", "Image"],
+          aspectRatio: "1:1",
         },
       })
 
