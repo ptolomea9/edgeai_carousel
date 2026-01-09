@@ -83,10 +83,7 @@ export async function POST(request: NextRequest) {
         prompt: imageGenerationPrompt,
         providerOptions: {
           google: {
-            responseModalities: ["IMAGE"],
-            imageConfig: {
-              aspectRatio: geminiAspectRatio,
-            },
+            responseModalities: ["Text", "Image"],
           },
         },
       })
@@ -197,10 +194,7 @@ export async function POST(request: NextRequest) {
         ],
         providerOptions: {
           google: {
-            responseModalities: ["IMAGE"],
-            imageConfig: {
-              aspectRatio: geminiAspectRatio,
-            },
+            responseModalities: ["Text", "Image"],
           },
         },
       })
