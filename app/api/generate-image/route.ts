@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { generateText } from "ai"
-import { createGoogleGenerativeAI } from "@ai-sdk/google"
+import { GoogleGenAI } from "@google/genai"
 
 export const dynamic = "force-dynamic"
 
@@ -37,7 +36,6 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const mode = formData.get("mode") as string
     const prompt = formData.get("prompt") as string
-    const aspectRatio = formData.get("aspectRatio") as string
 
     if (!mode) {
       return NextResponse.json<ErrorResponse>({ error: "Mode is required" }, { status: 400 })
@@ -54,65 +52,50 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const geminiAspectRatioMap: Record<string, string> = {
-      portrait: "9:16",
-      landscape: "16:9",
-      wide: "21:9",
-      "4:3": "4:3",
-      "3:4": "3:4",
-      "3:2": "3:2",
-      "2:3": "2:3",
-      "5:4": "5:4",
-      "4:5": "4:5",
-      square: "1:1",
-    }
-
-    const geminiAspectRatio = geminiAspectRatioMap[aspectRatio] || "1:1"
-
-    const google = createGoogleGenerativeAI({
-      apiKey: apiKey,
-    })
-
-    const model = google("gemini-2.0-flash-exp-image-generation")
+    const genAI = new GoogleGenAI({ apiKey })
 
     if (mode === "text-to-image") {
       const imageGenerationPrompt = `Generate a high-quality image based on this description: ${prompt}. The image should be visually appealing and match the description as closely as possible.`
 
-      const result = await generateText({
-        model,
-        prompt: imageGenerationPrompt,
-        providerOptions: {
-          google: {
-            responseModalities: ["Text", "Image"],
-          },
+      const response = await genAI.models.generateContent({
+        model: "gemini-2.0-flash-exp-image-generation",
+        contents: imageGenerationPrompt,
+        config: {
+          responseModalities: ["Text", "Image"],
         },
       })
 
-      const imageFiles = result.files?.filter((f) => f.mediaType?.startsWith("image/")) || []
+      // Extract image from response
+      const parts = response.candidates?.[0]?.content?.parts || []
+      let imageUrl = ""
+      let description = ""
 
-      if (imageFiles.length === 0) {
+      for (const part of parts) {
+        if (part.inlineData) {
+          imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`
+        }
+        if (part.text) {
+          description = part.text
+        }
+      }
+
+      if (!imageUrl) {
         return NextResponse.json<ErrorResponse>(
           { error: "No image generated", details: "The model did not return any images" },
           { status: 500 },
         )
       }
 
-      const firstImage = imageFiles[0]
-      const imageUrl = `data:${firstImage.mediaType};base64,${firstImage.base64}`
-
       return NextResponse.json<GenerateImageResponse>({
         url: imageUrl,
         prompt: prompt,
-        description: result.text || "",
+        description: description,
       })
     } else if (mode === "image-editing") {
       const image1 = formData.get("image1") as File
-      const image2 = formData.get("image2") as File
       const image1Url = formData.get("image1Url") as string
-      const image2Url = formData.get("image2Url") as string
 
       const hasImage1 = image1 || image1Url
-      const hasImage2 = image2 || image2Url
 
       if (!hasImage1) {
         return NextResponse.json<ErrorResponse>(
@@ -124,97 +107,95 @@ export async function POST(request: NextRequest) {
       if (image1) {
         if (image1.size > MAX_FILE_SIZE) {
           return NextResponse.json<ErrorResponse>(
-            { error: `Image 1 too large. Maximum ${MAX_FILE_SIZE / 1024 / 1024}MB allowed.` },
+            { error: `Image too large. Maximum ${MAX_FILE_SIZE / 1024 / 1024}MB allowed.` },
             { status: 400 },
           )
         }
         if (!ALLOWED_IMAGE_TYPES.includes(image1.type)) {
           return NextResponse.json<ErrorResponse>(
-            { error: "Image 1 has invalid format. Allowed: JPEG, PNG, WebP, GIF" },
+            { error: "Image has invalid format. Allowed: JPEG, PNG, WebP, GIF" },
             { status: 400 },
           )
         }
       }
 
-      if (image2) {
-        if (image2.size > MAX_FILE_SIZE) {
-          return NextResponse.json<ErrorResponse>(
-            { error: `Image 2 too large. Maximum ${MAX_FILE_SIZE / 1024 / 1024}MB allowed.` },
-            { status: 400 },
-          )
-        }
-        if (!ALLOWED_IMAGE_TYPES.includes(image2.type)) {
-          return NextResponse.json<ErrorResponse>(
-            { error: "Image 2 has invalid format. Allowed: JPEG, PNG, WebP, GIF" },
-            { status: 400 },
-          )
-        }
-      }
+      // Convert image to base64
+      let imageBase64 = ""
+      let imageMimeType = "image/jpeg"
 
-      const convertToDataUrl = async (source: File | string): Promise<string> => {
-        if (typeof source === "string") {
-          const response = await fetch(source)
+      if (image1) {
+        const arrayBuffer = await image1.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        imageBase64 = buffer.toString("base64")
+        imageMimeType = image1.type
+      } else if (image1Url) {
+        // Handle data URL
+        if (image1Url.startsWith("data:")) {
+          const matches = image1Url.match(/^data:([^;]+);base64,(.+)$/)
+          if (matches) {
+            imageMimeType = matches[1]
+            imageBase64 = matches[2]
+          }
+        } else {
+          // Fetch external URL
+          const response = await fetch(image1Url)
           const arrayBuffer = await response.arrayBuffer()
           const buffer = Buffer.from(arrayBuffer)
-          const base64 = buffer.toString("base64")
-          const contentType = response.headers.get("content-type") || "image/jpeg"
-          return `data:${contentType};base64,${base64}`
-        } else {
-          const arrayBuffer = await source.arrayBuffer()
-          const buffer = Buffer.from(arrayBuffer)
-          const base64 = buffer.toString("base64")
-          return `data:${source.type};base64,${base64}`
+          imageBase64 = buffer.toString("base64")
+          imageMimeType = response.headers.get("content-type") || "image/jpeg"
         }
       }
 
-      const image1DataUrl = await convertToDataUrl(hasImage1 ? image1 || image1Url : "")
-      const image2DataUrl = hasImage2 ? await convertToDataUrl(image2 || image2Url) : null
+      const editingPrompt = `${prompt}. Edit or transform this image based on the instructions.`
 
-      const messageParts: Array<{ type: "text" | "image"; text?: string; image?: string }> = []
-
-      messageParts.push({ type: "image", image: image1DataUrl })
-      if (image2DataUrl) {
-        messageParts.push({ type: "image", image: image2DataUrl })
-      }
-
-      const editingPrompt = hasImage2
-        ? `${prompt}. Combine these two images creatively while following the instructions.`
-        : `${prompt}. Edit or transform this image based on the instructions.`
-
-      messageParts.push({ type: "text", text: editingPrompt })
-
-      const result = await generateText({
-        model,
-        messages: [
+      const response = await genAI.models.generateContent({
+        model: "gemini-2.0-flash-exp-image-generation",
+        contents: [
           {
             role: "user",
-            // @ts-ignore - Type issue with content parts
-            content: messageParts,
+            parts: [
+              {
+                inlineData: {
+                  mimeType: imageMimeType,
+                  data: imageBase64,
+                },
+              },
+              {
+                text: editingPrompt,
+              },
+            ],
           },
         ],
-        providerOptions: {
-          google: {
-            responseModalities: ["Text", "Image"],
-          },
+        config: {
+          responseModalities: ["Text", "Image"],
         },
       })
 
-      const imageFiles = result.files?.filter((f) => f.mediaType?.startsWith("image/")) || []
+      // Extract image from response
+      const parts = response.candidates?.[0]?.content?.parts || []
+      let imageUrl = ""
+      let description = ""
 
-      if (imageFiles.length === 0) {
+      for (const part of parts) {
+        if (part.inlineData) {
+          imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`
+        }
+        if (part.text) {
+          description = part.text
+        }
+      }
+
+      if (!imageUrl) {
         return NextResponse.json<ErrorResponse>(
           { error: "No image generated", details: "The model did not return any images" },
           { status: 500 },
         )
       }
 
-      const firstImage = imageFiles[0]
-      const imageUrl = `data:${firstImage.mediaType};base64,${firstImage.base64}`
-
       return NextResponse.json<GenerateImageResponse>({
         url: imageUrl,
         prompt: editingPrompt,
-        description: result.text || "",
+        description: description,
       })
     } else {
       return NextResponse.json<ErrorResponse>(
