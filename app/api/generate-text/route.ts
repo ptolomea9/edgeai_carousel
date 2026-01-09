@@ -26,7 +26,7 @@ Style context: ${artStyle} visual style
 
 For each slide, create:
 1. A catchy, attention-grabbing headline (max 50 characters)
-2. Brief body text with key points (2-3 short bullet points or 1-2 sentences)
+2. Body text with 2-3 key points (minimum 2 required - can be bullet points or sentences)
 
 The content should flow as a story/journey across slides:
 - Slide 1: Hook/Introduction
