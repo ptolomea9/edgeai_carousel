@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { HeroImageUpload } from './hero-image-upload'
+import { HeroImageEditor } from './hero-image-editor'
 import { SlideCountSelector } from './slide-count-selector'
 import { ArtStylePicker } from './art-style-picker'
 import { SlideTextEditor } from './slide-text-editor'
@@ -45,6 +46,9 @@ export function CarouselCreator() {
   // Hero image state
   const [heroImage, setHeroImage] = useState<File | null>(null)
   const [heroImagePreview, setHeroImagePreview] = useState<string | null>(null)
+  const [originalHeroImage, setOriginalHeroImage] = useState<string | null>(null)
+  const [isHeroImageEdited, setIsHeroImageEdited] = useState(false)
+  const [isEditorOpen, setIsEditorOpen] = useState(false)
 
   // Carousel config state
   const [slideCount, setSlideCount] = useState(DEFAULT_SLIDE_COUNT)
@@ -101,6 +105,9 @@ export function CarouselCreator() {
   // Handle hero image upload
   const handleHeroImageSelect = (file: File) => {
     setHeroImage(file)
+    // Reset edit state when a new image is uploaded
+    setOriginalHeroImage(null)
+    setIsHeroImageEdited(false)
     const reader = new FileReader()
     reader.onloadend = () => {
       setHeroImagePreview(reader.result as string)
@@ -111,6 +118,31 @@ export function CarouselCreator() {
   const handleHeroImageRemove = () => {
     setHeroImage(null)
     setHeroImagePreview(null)
+    setOriginalHeroImage(null)
+    setIsHeroImageEdited(false)
+  }
+
+  // Hero image editing handlers
+  const handleEditClick = () => {
+    setIsEditorOpen(true)
+  }
+
+  const handleApplyEdit = (editedImageUrl: string) => {
+    // Save original if this is the first edit
+    if (!originalHeroImage && heroImagePreview) {
+      setOriginalHeroImage(heroImagePreview)
+    }
+    setHeroImagePreview(editedImageUrl)
+    setIsHeroImageEdited(true)
+    setIsEditorOpen(false)
+  }
+
+  const handleRevertToOriginal = () => {
+    if (originalHeroImage) {
+      setHeroImagePreview(originalHeroImage)
+      setOriginalHeroImage(null)
+      setIsHeroImageEdited(false)
+    }
   }
 
   // Handle auto-generate slide text
@@ -298,8 +330,22 @@ export function CarouselCreator() {
                 onImageSelect={handleHeroImageSelect}
                 onImageClear={handleHeroImageRemove}
                 imagePreview={heroImagePreview}
+                onEditClick={handleEditClick}
+                onRevertToOriginal={handleRevertToOriginal}
+                isEdited={isHeroImageEdited}
               />
             </section>
+
+            {/* Hero Image Editor Dialog */}
+            {heroImagePreview && (
+              <HeroImageEditor
+                imagePreview={heroImagePreview}
+                originalImage={originalHeroImage}
+                isOpen={isEditorOpen}
+                onOpenChange={setIsEditorOpen}
+                onApplyEdit={handleApplyEdit}
+              />
+            )}
 
             {/* Tabs for Configuration */}
             <div className="bg-black/70 border border-white/10 rounded-lg backdrop-blur-sm p-4">

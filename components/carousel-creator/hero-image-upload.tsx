@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, X, Image as ImageIcon } from 'lucide-react'
+import { Upload, X, Image as ImageIcon, Wand2, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -10,6 +10,9 @@ interface HeroImageUploadProps {
   imagePreview: string | null
   onImageSelect: (file: File) => void
   onImageClear: () => void
+  onEditClick?: () => void
+  onRevertToOriginal?: () => void
+  isEdited?: boolean
   className?: string
 }
 
@@ -17,6 +20,9 @@ export function HeroImageUpload({
   imagePreview,
   onImageSelect,
   onImageClear,
+  onEditClick,
+  onRevertToOriginal,
+  isEdited = false,
   className,
 }: HeroImageUploadProps) {
   const onDrop = useCallback(
@@ -55,7 +61,7 @@ export function HeroImageUpload({
               alt="Hero character preview"
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -65,8 +71,36 @@ export function HeroImageUpload({
                 <X className="size-4 mr-1" />
                 Remove
               </Button>
+              {onEditClick && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onEditClick}
+                  className="bg-black/80 border-white/20 text-white hover:bg-black hover:text-white"
+                >
+                  <Wand2 className="size-4 mr-1" />
+                  Edit with AI
+                </Button>
+              )}
+              {isEdited && onRevertToOriginal && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onRevertToOriginal}
+                  className="bg-black/80 border-white/20 text-white hover:bg-black hover:text-white"
+                >
+                  <RotateCcw className="size-4 mr-1" />
+                  Revert
+                </Button>
+              )}
             </div>
           </div>
+          {isEdited && (
+            <div className="mt-2 inline-flex items-center gap-1 px-2 py-1 bg-purple-900/50 border border-purple-700 text-purple-300 text-xs">
+              <Wand2 className="size-3" />
+              AI Edited
+            </div>
+          )}
         </div>
       ) : (
         <div
