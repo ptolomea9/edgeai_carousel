@@ -37,7 +37,8 @@ app/
   gallery/page.tsx            # Gallery of generated carousels
   api/
     generate-carousel/route.ts   # Triggers n8n static workflow
-    generate-text/route.ts       # AI text generation for slides
+    generate-text/route.ts       # AI text generation for slides (min 2 bullets/sentences)
+    generate-image/route.ts      # AI hero image editing (Gemini 3 Pro)
     status/[id]/route.ts         # Polls generation status
     gallery/route.ts             # Fetches saved generations
 
@@ -45,7 +46,8 @@ components/
   carousel-creator/           # Main creator UI components
     index.tsx                 # CarouselCreator main component
     types.ts                  # TypeScript types (CarouselConfig, SlideContent, etc.)
-    hero-image-upload.tsx     # Hero image uploader
+    hero-image-upload.tsx     # Hero image uploader with edit button
+    hero-image-editor.tsx     # AI image editing dialog (Gemini 3 Pro)
     slide-text-editor.tsx     # Slide content editor
     art-style-picker.tsx      # Art style selection
     output-options.tsx        # Static/video/both selector
@@ -79,9 +81,18 @@ Two main workflows handle generation:
 
 ### APIs Used
 - **kie.ai**: Image generation (Seedream 4.5-edit with reference images) and image-to-video animation (Wan 2.6 model)
-- **json2video**: Video concatenation with transitions
-- **OpenAI GPT-4o**: Hero image analysis for character consistency
+- **json2video**: Video concatenation with text overlays, transitions, and branding
+- **Google Gemini 3 Pro**: Hero image AI editing (remove background, enhance, studio lighting, etc.)
+- **OpenAI GPT-4o-mini**: Slide text auto-generation (headlines + body with min 2 bullets/sentences)
 - **Supabase Storage**: Buckets for `carousel-images` and `carousel-videos`
+
+### json2video Text Overlays
+Each art style has custom text styling applied in the video:
+- **Headline**: Bold, at top center, art-style-specific font/color/shadow
+- **Body**: Normal weight, at vertical center, matching style
+- **Branding**: At bottom center, 70% of headline size, same font/color as headline
+
+Art styles: synthwave, anime, 3d-pixar, watercolor, minimalist, comic, photorealistic, custom
 
 ## Environment Variables
 
@@ -100,17 +111,23 @@ N8N_VIDEO_WORKFLOW_ID=0MpzxUS4blJI7vgm
 
 # OpenAI (for text generation)
 OPENAI_API_KEY=your-openai-key
+
+# Google Gemini (for hero image AI editing)
+GOOGLE_GENERATIVE_AI_API_KEY=your-google-api-key
 ```
 
 ## Key Data Flow
 
 1. User uploads hero image + configures carousel (email is **required**)
-2. `POST /api/generate-carousel` triggers n8n static workflow
-3. n8n generates slides with character consistency
-4. Frontend polls `GET /api/status/{id}` for progress
-5. If video enabled, static workflow triggers video workflow
-6. Status API polls n8n for video execution status
-7. Results persisted to Supabase Storage + database
+2. User can optionally edit hero image with AI (Gemini 3 Pro) via `POST /api/generate-image`
+3. `POST /api/generate-carousel` triggers n8n static workflow
+4. n8n generates slides with character consistency using Seedream 4.5-edit
+5. Frontend polls `GET /api/status/{id}` for progress
+6. If video enabled, static workflow triggers video workflow
+7. Video workflow animates slides, adds styled text overlays + branding, merges with json2video
+8. Status API polls n8n for video execution status
+9. Results persisted to Supabase Storage + database
+10. Email sent with merged video URL + all individual slide image URLs
 
 ## Database Schema (Supabase)
 
