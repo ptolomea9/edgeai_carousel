@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/gateway": "latest",
+    "@ai-sdk/google": "^3.0.6",
     "@paper-design/shaders-react": "latest",
     "@radix-ui/react-aspect-ratio": "latest",
     "@radix-ui/react-avatar": "latest",

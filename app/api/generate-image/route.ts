@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { generateText } from "ai"
-import { createGateway } from "@ai-sdk/gateway"
+import { createGoogleGenerativeAI } from "@ai-sdk/google"
 
 export const dynamic = "force-dynamic"
 
@@ -22,13 +22,13 @@ interface ErrorResponse {
 
 export async function POST(request: NextRequest) {
   try {
-    const apiKey = process.env.AI_GATEWAY_API_KEY
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
 
     if (!apiKey) {
       return NextResponse.json<ErrorResponse>(
         {
           error: "Configuration error",
-          details: "No AI Gateway API key configured. Please add AI_GATEWAY_API_KEY to environment variables.",
+          details: "No Google API key configured. Please add GOOGLE_GENERATIVE_AI_API_KEY to environment variables.",
         },
         { status: 500 },
       )
@@ -69,11 +69,11 @@ export async function POST(request: NextRequest) {
 
     const geminiAspectRatio = geminiAspectRatioMap[aspectRatio] || "1:1"
 
-    const gateway = createGateway({
+    const google = createGoogleGenerativeAI({
       apiKey: apiKey,
     })
 
-    const model = gateway("google/gemini-3-pro-image")
+    const model = google("gemini-2.0-flash-exp")
 
     if (mode === "text-to-image") {
       const imageGenerationPrompt = `Generate a high-quality image based on this description: ${prompt}. The image should be visually appealing and match the description as closely as possible.`
