@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       apiKey: apiKey,
     })
 
-    const model = google("gemini-2.0-flash-exp")
+    const model = google("gemini-2.0-flash-exp-image-generation")
 
     if (mode === "text-to-image") {
       const imageGenerationPrompt = `Generate a high-quality image based on this description: ${prompt}. The image should be visually appealing and match the description as closely as possible.`
