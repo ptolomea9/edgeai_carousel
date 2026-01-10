@@ -1,19 +1,25 @@
 'use client'
 
 import Image from 'next/image'
-import { Play, Images } from 'lucide-react'
+import { Play, Images, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { GenerationWithSlides } from '@/lib/supabase'
 
 interface GenerationCardProps {
   generation: GenerationWithSlides
   onClick: () => void
+  selectionMode?: boolean
+  isSelected?: boolean
+  onToggleSelect?: (id: string) => void
   className?: string
 }
 
 export function GenerationCard({
   generation,
   onClick,
+  selectionMode = false,
+  isSelected = false,
+  onToggleSelect,
   className,
 }: GenerationCardProps) {
   const firstSlide = generation.slides[0]
@@ -31,12 +37,31 @@ export function GenerationCard({
     <button
       onClick={onClick}
       className={cn(
-        'group relative bg-black/70 border border-white/10 rounded-lg overflow-hidden backdrop-blur-sm',
+        'group relative bg-black/70 border rounded-lg overflow-hidden backdrop-blur-sm',
         'hover:border-white/30 hover:bg-black/80 transition-all duration-200',
         'text-left w-full',
+        isSelected ? 'border-white ring-2 ring-white/50' : 'border-white/10',
         className
       )}
     >
+      {/* Selection checkbox */}
+      {selectionMode && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleSelect?.(generation.id)
+          }}
+          className={cn(
+            'absolute top-3 left-3 z-20 size-6 rounded border-2 flex items-center justify-center transition-all cursor-pointer',
+            isSelected
+              ? 'bg-white border-white'
+              : 'bg-black/50 border-white/50 hover:border-white'
+          )}
+        >
+          {isSelected && <Check className="size-4 text-black" />}
+        </div>
+      )}
+
       {/* Thumbnail */}
       <div className="relative aspect-square bg-gray-900 rounded-t-lg overflow-hidden">
         {firstSlide?.image_url ? (
@@ -55,7 +80,9 @@ export function GenerationCard({
 
         {/* Overlay on hover */}
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <span className="text-white text-sm font-medium">View Details</span>
+          <span className="text-white text-sm font-medium">
+            {selectionMode ? (isSelected ? 'Deselect' : 'Select') : 'View Details'}
+          </span>
         </div>
 
         {/* Video indicator */}

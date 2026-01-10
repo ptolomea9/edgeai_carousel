@@ -5,6 +5,61 @@ const N8N_API_URL = process.env.N8N_API_URL || 'https://edgeaimedia.app.n8n.clou
 const N8N_API_KEY = process.env.N8N_API_KEY || ''
 const N8N_VIDEO_WORKFLOW_ID = process.env.N8N_VIDEO_WORKFLOW_ID || '0MpzxUS4blJI7vgm'
 
+// Music track definitions - shared between frontend and backend
+export interface MusicTrack {
+  id: string
+  name: string
+  genre: string
+  duration: string
+  previewUrl: string
+  fullUrl: string
+}
+
+export const MUSIC_TRACKS: MusicTrack[] = [
+  {
+    id: 'upbeat-1',
+    name: 'Energy Boost',
+    genre: 'Upbeat',
+    duration: '2:30',
+    previewUrl: '/music/energy-boost-preview.mp3',
+    fullUrl: '/music/energy-boost.mp3',
+  },
+  {
+    id: 'corporate-1',
+    name: 'Business Forward',
+    genre: 'Corporate',
+    duration: '2:45',
+    previewUrl: '/music/business-forward-preview.mp3',
+    fullUrl: '/music/business-forward.mp3',
+  },
+  {
+    id: 'chill-1',
+    name: 'Smooth Vibes',
+    genre: 'Chill',
+    duration: '3:00',
+    previewUrl: '/music/smooth-vibes-preview.mp3',
+    fullUrl: '/music/smooth-vibes.mp3',
+  },
+  {
+    id: 'epic-1',
+    name: 'Rise Up',
+    genre: 'Epic',
+    duration: '2:15',
+    previewUrl: '/music/rise-up-preview.mp3',
+    fullUrl: '/music/rise-up.mp3',
+  },
+]
+
+// Get full music URL from track ID
+export function getMusicUrl(trackId: string | undefined): string | undefined {
+  if (!trackId) return undefined
+  const track = MUSIC_TRACKS.find((t) => t.id === trackId)
+  if (!track) return undefined
+  // Return absolute URL for n8n to access
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://edgeai-carousel.vercel.app'
+  return `${baseUrl}${track.fullUrl}`
+}
+
 export interface N8nWebhookPayload {
   heroImage: string | null
   slideCount: number
@@ -77,10 +132,13 @@ export async function triggerCarouselGeneration(
         const videoGenId = payload.generationId || staticResult.generationId
         // Mark video generation as pending before triggering
         setVideoExecutionPending(videoGenId)
+        // Resolve musicTrackId to full URL for n8n
+        const musicUrl = getMusicUrl(payload.musicTrackId)
         triggerVideoGeneration({
           generationId: videoGenId,
           slides: videoSlides,
           musicTrackId: payload.musicTrackId,
+          musicUrl,
           slideDuration: 3,
           transitionDuration: 0.5,
           recipientEmail: payload.recipientEmail,
@@ -114,12 +172,21 @@ export interface VideoGenerationPayload {
 export async function triggerVideoGeneration(
   payload: VideoGenerationPayload
 ): Promise<N8nWebhookResponse> {
+  // Ensure musicUrl is resolved if musicTrackId is provided
+  const musicUrl = payload.musicUrl || getMusicUrl(payload.musicTrackId)
+  const payloadWithMusic = {
+    ...payload,
+    musicUrl,
+  }
+
+  console.log('Triggering video generation with musicUrl:', musicUrl || 'none')
+
   const response = await fetch(`${N8N_WEBHOOK_URL}/carousel-video-generate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(payloadWithMusic),
   })
 
   if (!response.ok) {

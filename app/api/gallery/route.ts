@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Otherwise return paginated list
-    const { data, count } = await getGenerations(limit, offset)
+    const filter = (searchParams.get('filter') || 'all') as 'all' | 'static' | 'video'
+    const { data, count } = await getGenerations(limit, offset, filter)
 
     return NextResponse.json({
       generations: data,

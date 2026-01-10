@@ -73,16 +73,18 @@ Two main workflows handle generation:
    - Output format: **9:16 vertical** (Instagram Reels optimized)
    - Uses `responseMode: "lastNode"` for synchronous response
    - Includes retry logic for failed slides
-   - **Conditional text rendering**: Static-only mode includes text in images; video/both modes generate text-free images
+   - **Post-processing text overlays**: Uses json2video to add reliable text overlays (GPT Image can't render text)
    - **Email notification**: Sends results via Gmail for all output modes
 
 2. **Video Workflow** (ID: `0MpzxUS4blJI7vgm`)
-   - Animates slides using kie.ai (Kling 2.6 model) at 720p with **10-second clips**
-   - Art-style-specific animation prompts with "NO speaking" instructions
+   - **Current Version ID**: `7c1a57d5-5f56-4a8d-8e7e-54bc188443cb` (January 10, 2026)
+   - Animates slides using kie.ai (Kling 2.6 model) at 720p with **5-second clips**
+   - Art-style-specific animation prompts
    - Merges clips using json2video API at **1080x1920** (9:16 vertical)
    - Callbacks to production URL: `https://edgeai-carousel.vercel.app/api/status/{id}`
    - Uses `responseMode: "onReceived"` (async)
    - Email includes both merged video URL and all static slide images
+   - **38 nodes** total with retry logic (up to 3 retries per slide)
 
 ### APIs Used
 - **kie.ai**: Image generation (GPT Image 1.5) and image-to-video animation (Kling 2.6 model)
@@ -236,29 +238,144 @@ Enhanced text overlays in "Build json2video Payload" node for better visibility:
 - Art-style-appropriate colors (neon for synthwave, yellow for comic, etc.)
 - Larger font sizes (64px headline, 48px body)
 
-### Video Animation Improvements (IMPLEMENTED)
-Enhanced video clip generation for better user experience:
+### Video Animation Settings (CURRENT)
+Video clip generation configuration:
 
-**Clip Duration**: Changed from 5s to 10s
-- Provides adequate reading time for text overlays
-- Total video length: ~65s for 6 slides (was ~35s)
-- kie.ai cost: ~$3.30/carousel (was ~$1.68)
+**Clip Duration**: 5 seconds per slide
+- Total video length: ~30-35s for 6 slides
+- kie.ai cost: ~$1.68/carousel
 
-**No Mouth Movement**: Added "NO speaking, NO talking, NO lip movement" to all animation prompts
-- Prevents confusing lip-sync animations when there's no audio
-- Art-style-specific prompts emphasize expressive body language and facial emotions instead
-
-**Wait Time Adjustments** (for longer processing):
-| Node | Old | New |
-|------|-----|-----|
-| Wait 5 min | 300s | 600s |
-| Wait 120s More | 120s | 240s |
-| Wait 30s (json2video) | 30s | 60s |
-| Wait 30s More | 30s | 60s |
-| Poll json2video timeout | 30000ms | 60000ms |
+**Wait Times**:
+| Node | Duration |
+|------|----------|
+| Wait 5 min | 300s |
+| Wait 120s More | 120s |
+| Wait 30s (json2video) | 30s |
+| Wait 30s More | 30s |
 
 ### Email Results Fix (IMPLEMENTED)
 Fixed "Format Final Result" node to include static image URLs in email:
 - Extracts slides with imageUrl from Collect Video Clips node
 - Sets `hasImages: true` when images exist
 - Email now contains both merged video URL and all individual slide images
+
+### Caption Positioning & Formatting Fix (IMPLEMENTED - January 10, 2026)
+Fixed video text overlays in "Build json2video Payload" node:
+- **Centering**: Changed body text from `position: 'custom', y: 960` to `position: 'center', y: 100`
+- **Bullet formatting**: Added `formatBodyText()` helper to convert markdown bullets (`- point`) to HTML (`<ul><li>`)
+- Text no longer gets cut off at bottom of video frame
+- Bullets display as proper disc points instead of raw hyphens
+
+### Animation Hallucination Prevention (IMPLEMENTED - January 10, 2026)
+Enhanced animation prompts to prevent Kling 2.6 from generating extra wings/limbs:
+
+**"Split Slides for Animation" node** - Enhanced consistency reinforcement:
+```javascript
+const consistencyReinforcement = 'CRITICAL ANATOMICAL LOCK: Character MUST maintain EXACT body structure throughout - same number of limbs, wings, tails, eyes, heads from first to last frame. If bird: exactly TWO wings, never more. If animal: exact limb count preserved. ZERO new body parts appearing. ZERO splitting/duplicating/morphing. Stable consistent motion with identical anatomy throughout.';
+```
+
+**"Animate with Kling 2.6" node** - Enhanced negative prompt:
+```
+extra limbs, extra arms, extra legs, extra wings, duplicate wings, triple wings, extra tails, extra heads, extra eyes, extra beaks, multiple heads, cloning, splitting, duplicating body parts, multiplying features, growing new parts, deformed hands, deformed limbs, morphing body parts, disappearing objects, warped geometry, distorted anatomy, flickering, temporal inconsistency, blurry, low quality, watermark, text, extra fingers, extra hands
+```
+
+### Static Image Text Overlays (IMPLEMENTED - January 10, 2026)
+Added json2video post-processing to static workflow for reliable text overlays:
+
+**Problem**: GPT Image 1.5 cannot reliably render text from prompts (garbled letters, missing text)
+
+**Solution**: Added 8 new nodes to static workflow after "Collect All Results":
+1. "Build Text Overlay Payloads" - Prepares json2video payloads with art-style-specific text styling
+2. "Split for Text Overlay" - Splits slides for parallel processing
+3. "Create Text Overlay Job" - Calls json2video API
+4. "Extract Text Job ID" - Extracts project ID from response
+5. "Wait 30s (Text)" - Waits for processing
+6. "Poll Text Status" - Polls for completion
+7. "Extract Processed Image" - Extracts final image URL
+8. "Collect Processed Images" - Aggregates all processed images
+
+Static workflow now generates clean images without text, then adds text overlays using json2video (same styling as video workflow). This ensures consistent, reliable text rendering across static and video outputs.
+
+## Video Workflow Architecture (Current)
+
+**Workflow ID**: `0MpzxUS4blJI7vgm`
+**Version ID**: `7c1a57d5-5f56-4a8d-8e7e-54bc188443cb`
+**Last Updated**: January 10, 2026
+**Node Count**: 38
+
+### Node Flow
+```
+Video Generation Webhook
+    ↓
+Extract Video Config
+    ↓
+Split Slides for Animation (splits into parallel items)
+    ↓
+Animate with Kling 2.6 (kie.ai) [parallel per slide]
+    ↓
+Extract Task ID
+    ↓
+Wait 5 min
+    ↓
+Get Video Task Result
+    ↓
+Check Video Status
+    ↓
+Check If Retry Needed
+    ↓
+IF Retry Needed ─────────────────────────────┐
+    ↓ (no)                                   ↓ (yes)
+Format Complete Items               Wait 120s More
+    ↓                                        ↓
+    │                               Get Result (Retry)
+    │                                        ↓
+    │                               Extract Final URL
+    │                                        ↓
+    │                               IF Needs More Retry ──→ [Retry 2 & 3 chain]
+    │                                        ↓ (no)
+    ↓←───────────────────────────────────────┘
+Collect Video Clips
+    ↓
+Build json2video Payload
+    ↓
+Create json2video Job
+    ↓
+Extract Project ID
+    ↓
+Wait 30s (json2video)
+    ↓
+Poll json2video Status
+    ↓
+Check json2video Status
+    ↓
+IF Needs More Polling ───────────────────────┐
+    ↓ (no)                                   ↓ (yes)
+Pass Through Done                   Wait 30s More
+    ↓                                        ↓
+    │                               Poll json2video Again
+    │                                        ↓
+    │                               Extract Final Video
+    ↓←───────────────────────────────────────┘
+Format Final Result
+    ↓
+IF Email Provided ───────────────────────────┐
+    ↓ (yes)                                  ↓ (no)
+Send Email Results                           │
+    ↓                                        │
+    ↓←───────────────────────────────────────┘
+Update App Status
+```
+
+### Key Nodes
+| Node | Type | Purpose |
+|------|------|---------|
+| Split Slides for Animation | Code | Splits slides array, adds art-style animation prompts |
+| Animate with Kling 2.6 | HTTP Request | Calls kie.ai API for image-to-video |
+| Collect Video Clips | Code | Aggregates all animated clips back together |
+| Build json2video Payload | Code | Creates json2video API payload with text overlays |
+| Format Final Result | Code | Formats output with videoClips array for email |
+
+### Critical Data Flow
+- "Collect Video Clips" outputs `videoClips` array (not `slides`)
+- "Build json2video Payload" must read from `firstItem.videoClips`
+- Video clips contain: `slideNumber`, `videoUrl`, `imageUrl`, `headline`, `bodyText`

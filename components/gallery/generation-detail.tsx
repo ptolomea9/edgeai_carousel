@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Image from 'next/image'
 import {
   X,
@@ -9,6 +9,8 @@ import {
   Download,
   Play,
   Images,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -25,6 +27,9 @@ export function GenerationDetail({
 }: GenerationDetailProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [showVideo, setShowVideo] = useState(false)
+  const [videoLoading, setVideoLoading] = useState(true)
+  const [videoError, setVideoError] = useState<string | null>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   const slides = generation.slides
   const hasVideo = !!generation.video_url
@@ -99,7 +104,11 @@ export function GenerationDetail({
               <Button
                 variant={showVideo ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setShowVideo(true)}
+                onClick={() => {
+                  setVideoLoading(true)
+                  setVideoError(null)
+                  setShowVideo(true)
+                }}
                 className={cn(
                   'rounded-lg',
                   showVideo
@@ -116,13 +125,45 @@ export function GenerationDetail({
           {/* Viewer area */}
           <div className="relative aspect-square bg-gray-900 border border-white/10 rounded-lg overflow-hidden">
             {showVideo && generation.video_url ? (
-              <video
-                src={generation.video_url}
-                controls
-                autoPlay
-                loop
-                className="absolute inset-0 w-full h-full object-contain"
-              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                {videoLoading && !videoError && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
+                    <Loader2 className="size-8 animate-spin text-gray-400" />
+                  </div>
+                )}
+                {videoError ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-center p-4">
+                    <AlertCircle className="size-12 text-red-400 mb-4" />
+                    <p className="text-red-400 font-medium">Video playback error</p>
+                    <p className="text-gray-500 text-sm mt-2">{videoError}</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(generation.video_url!, '_blank')}
+                      className="mt-4 bg-black/50 border-white/20 text-gray-300"
+                    >
+                      Open in New Tab
+                    </Button>
+                  </div>
+                ) : (
+                  <video
+                    ref={videoRef}
+                    src={generation.video_url}
+                    controls
+                    loop
+                    playsInline
+                    onLoadedData={() => setVideoLoading(false)}
+                    onError={(e) => {
+                      setVideoLoading(false)
+                      const target = e.target as HTMLVideoElement
+                      setVideoError(target.error?.message || 'Failed to load video')
+                    }}
+                    className="absolute inset-0 w-full h-full object-contain"
+                  >
+                    Your browser does not support video playback.
+                  </video>
+                )}
+              </div>
             ) : slides.length > 0 ? (
               <>
                 <Image

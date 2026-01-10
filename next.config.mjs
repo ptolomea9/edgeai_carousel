@@ -2,6 +2,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  serverExternalPackages: [],
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -25,6 +26,10 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    // Increase body size limit for base64 image uploads (10MB)
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
   },
 }
 

@@ -263,7 +263,7 @@ export async function updateGeneration(
   }
 }
 
-// Add slides to a generation
+// Add slides to a generation (with retry logic for race conditions)
 export async function addSlides(
   generationId: string,
   slides: {
@@ -282,15 +282,33 @@ export async function addSlides(
   try {
     const client = getClient()
 
-    // First get the UUID for this generation_id
-    const { data: generation, error: genError } = await client
-      .from('generations')
-      .select('id')
-      .eq('generation_id', generationId)
-      .single()
+    // Retry logic to handle race condition where generation record might not exist yet
+    let retries = 3
+    let generation: { id: string } | null = null
 
-    if (genError || !generation) {
-      console.error('Failed to find generation:', genError)
+    while (retries > 0 && !generation) {
+      const { data, error: genError } = await client
+        .from('generations')
+        .select('id')
+        .eq('generation_id', generationId)
+        .single()
+
+      if (data) {
+        generation = data
+      } else {
+        retries--
+        if (retries > 0) {
+          console.log(`Generation record not found, retrying... (${retries} attempts left)`)
+          await new Promise((r) => setTimeout(r, 500))
+        } else {
+          console.error('Failed to find generation after retries:', genError)
+          return false
+        }
+      }
+    }
+
+    if (!generation) {
+      console.error('Failed to find generation for slides')
       return false
     }
 
@@ -315,9 +333,11 @@ export async function addSlides(
 }
 
 // Get all generations with their slides (for gallery)
+// filter: 'all' | 'static' | 'video' - filter by asset type
 export async function getGenerations(
   limit = 20,
-  offset = 0
+  offset = 0,
+  filter: 'all' | 'static' | 'video' = 'all'
 ): Promise<{ data: GenerationWithSlides[]; count: number }> {
   if (!isConfigured) {
     console.warn('Supabase not configured')
@@ -327,19 +347,37 @@ export async function getGenerations(
   try {
     const client = getClient()
 
-    // Get total count
-    const { count } = await client
+    // Build base query for count
+    let countQuery = client
       .from('generations')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'complete')
 
-    // Get generations
-    const { data: generations, error } = await client
+    // Apply filter to count query
+    if (filter === 'static') {
+      countQuery = countQuery.is('video_url', null)
+    } else if (filter === 'video') {
+      countQuery = countQuery.not('video_url', 'is', null)
+    }
+
+    const { count } = await countQuery
+
+    // Build base query for generations
+    let query = client
       .from('generations')
       .select('*')
       .eq('status', 'complete')
       .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+
+    // Apply filter
+    if (filter === 'static') {
+      query = query.is('video_url', null)
+    } else if (filter === 'video') {
+      query = query.not('video_url', 'is', null)
+    }
+
+    // Apply pagination
+    const { data: generations, error } = await query.range(offset, offset + limit - 1)
 
     if (error || !generations) {
       console.error('getGenerations error:', error)

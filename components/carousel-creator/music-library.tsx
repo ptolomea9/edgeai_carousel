@@ -2,53 +2,36 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Play, Pause, Music, Check } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { MUSIC_TRACKS } from '@/lib/n8n'
 import type { MusicTrack } from './types'
 
-// Sample music library - in production, this would come from an API or database
-const SAMPLE_TRACKS: MusicTrack[] = [
-  {
-    id: 'upbeat-1',
-    title: 'Energy Boost',
-    artist: 'Royalty Free',
-    duration: 120,
-    category: 'upbeat',
-    previewUrl: '/music/energy-boost-preview.mp3',
-    fullUrl: '/music/energy-boost.mp3',
-    bpm: 128,
-  },
-  {
-    id: 'corporate-1',
-    title: 'Business Forward',
-    artist: 'Royalty Free',
-    duration: 90,
-    category: 'corporate',
-    previewUrl: '/music/business-forward-preview.mp3',
-    fullUrl: '/music/business-forward.mp3',
-    bpm: 110,
-  },
-  {
-    id: 'chill-1',
-    title: 'Smooth Vibes',
-    artist: 'Royalty Free',
-    duration: 150,
-    category: 'chill',
-    previewUrl: '/music/smooth-vibes-preview.mp3',
-    fullUrl: '/music/smooth-vibes.mp3',
-    bpm: 95,
-  },
-  {
-    id: 'epic-1',
-    title: 'Rise Up',
-    artist: 'Royalty Free',
-    duration: 180,
-    category: 'epic',
-    previewUrl: '/music/rise-up-preview.mp3',
-    fullUrl: '/music/rise-up.mp3',
-    bpm: 140,
-  },
-]
+// Map the shared MUSIC_TRACKS from lib/n8n.ts to the component's format
+// Genre-to-category mapping
+const genreToCategory: Record<string, MusicTrack['category']> = {
+  'Upbeat': 'upbeat',
+  'Corporate': 'corporate',
+  'Chill': 'chill',
+  'Epic': 'epic',
+  'Emotional': 'emotional',
+}
+
+// Parse duration string (e.g., "2:30") to seconds
+function parseDuration(duration: string): number {
+  const [mins, secs] = duration.split(':').map(Number)
+  return mins * 60 + secs
+}
+
+// Convert lib/n8n tracks to component format
+const SAMPLE_TRACKS: MusicTrack[] = MUSIC_TRACKS.map((track) => ({
+  id: track.id,
+  title: track.name,
+  artist: 'Royalty Free',
+  duration: parseDuration(track.duration),
+  category: genreToCategory[track.genre] || 'upbeat',
+  previewUrl: track.previewUrl,
+  fullUrl: track.fullUrl,
+}))
 
 interface MusicLibraryProps {
   selectedTrackId: string | null

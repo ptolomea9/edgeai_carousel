@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Download, ExternalLink, Loader2 } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { ChevronLeft, ChevronRight, Download, ExternalLink, Loader2, Play, Images, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
@@ -14,9 +14,14 @@ interface CarouselPreviewProps {
 
 export function CarouselPreview({ status, className }: CarouselPreviewProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [showVideo, setShowVideo] = useState(false)
+  const [videoLoading, setVideoLoading] = useState(true)
+  const [videoError, setVideoError] = useState<string | null>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   const slides = status?.results?.slides || []
   const hasSlides = slides.length > 0
+  const hasVideo = !!status?.results?.videoUrl
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length)
@@ -131,9 +136,88 @@ export function CarouselPreview({ status, className }: CarouselPreviewProps) {
         </div>
       </div>
 
+      {/* Toggle between slides and video */}
+      {hasVideo && hasSlides && (
+        <div className="flex gap-2 justify-center">
+          <Button
+            variant={!showVideo ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setShowVideo(false)}
+            className={cn(
+              'rounded-lg',
+              !showVideo
+                ? 'bg-white text-black hover:bg-gray-200'
+                : 'bg-black/50 border-gray-600 text-gray-300 hover:bg-black hover:text-white'
+            )}
+          >
+            <Images className="size-4 mr-2" />
+            Slides
+          </Button>
+          <Button
+            variant={showVideo ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => {
+              setVideoLoading(true)
+              setVideoError(null)
+              setShowVideo(true)
+            }}
+            className={cn(
+              'rounded-lg',
+              showVideo
+                ? 'bg-white text-black hover:bg-gray-200'
+                : 'bg-black/50 border-gray-600 text-gray-300 hover:bg-black hover:text-white'
+            )}
+          >
+            <Play className="size-4 mr-2" />
+            Video
+          </Button>
+        </div>
+      )}
+
       {/* Main preview */}
       <div className="relative aspect-square bg-black border border-gray-700 overflow-hidden">
-        {hasSlides && (
+        {showVideo && status?.results?.videoUrl ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            {videoLoading && !videoError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
+                <Loader2 className="size-8 animate-spin text-gray-400" />
+              </div>
+            )}
+            {videoError ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-center p-4">
+                <AlertCircle className="size-10 text-red-400 mb-3" />
+                <p className="text-red-400 font-medium text-sm">Video playback error</p>
+                <p className="text-gray-500 text-xs mt-1">{videoError}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(status.results?.videoUrl!, '_blank')}
+                  className="mt-3 bg-black/50 border-gray-600 text-gray-300"
+                >
+                  <ExternalLink className="size-3 mr-1" />
+                  Open in New Tab
+                </Button>
+              </div>
+            ) : (
+              <video
+                ref={videoRef}
+                src={status.results.videoUrl}
+                controls
+                loop
+                playsInline
+                onLoadedData={() => setVideoLoading(false)}
+                onError={(e) => {
+                  setVideoLoading(false)
+                  const target = e.target as HTMLVideoElement
+                  setVideoError(target.error?.message || 'Failed to load video')
+                }}
+                className="absolute inset-0 w-full h-full object-contain"
+              >
+                Your browser does not support video playback.
+              </video>
+            )}
+          </div>
+        ) : hasSlides && (
           <>
             <img
               src={slides[currentSlide].imageUrl}
@@ -184,8 +268,8 @@ export function CarouselPreview({ status, className }: CarouselPreviewProps) {
         )}
       </div>
 
-      {/* Thumbnail strip */}
-      {hasSlides && slides.length > 1 && (
+      {/* Thumbnail strip - only show when viewing slides */}
+      {!showVideo && hasSlides && slides.length > 1 && (
         <div className="flex gap-1 overflow-x-auto pb-2">
           {slides.map((slide, idx) => (
             <button
@@ -208,8 +292,8 @@ export function CarouselPreview({ status, className }: CarouselPreviewProps) {
         </div>
       )}
 
-      {/* Video download */}
-      {status.results?.videoUrl && (
+      {/* Video download button - shown below video when playing */}
+      {showVideo && status.results?.videoUrl && (
         <div className="p-3 bg-black/30 border border-gray-700 flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-300">Video with Music</p>
@@ -221,7 +305,7 @@ export function CarouselPreview({ status, className }: CarouselPreviewProps) {
             onClick={() => window.open(status.results?.videoUrl, '_blank')}
             className="bg-black/50 border-gray-600 text-gray-300 hover:bg-black hover:text-white"
           >
-            <ExternalLink className="size-3 mr-1" />
+            <Download className="size-3 mr-1" />
             Download Video
           </Button>
         </div>

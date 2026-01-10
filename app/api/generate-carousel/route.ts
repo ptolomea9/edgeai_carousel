@@ -5,9 +5,17 @@ import {
   setGenerationStatus,
   type N8nWebhookPayload,
 } from '@/lib/n8n'
-import { createGeneration, uploadBase64Image } from '@/lib/supabase'
+import {
+  createGeneration,
+  uploadBase64Image,
+  updateGeneration,
+  addSlides,
+  uploadImageFromUrl,
+} from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
+  const generationId = generateId()
+
   try {
     const payload: N8nWebhookPayload = await request.json()
 
@@ -25,8 +33,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-
-    const generationId = generateId()
 
     // Initialize status in memory
     setGenerationStatus(generationId, {
@@ -55,45 +61,144 @@ export async function POST(request: NextRequest) {
     setGenerationStatus(generationId, {
       status: 'analyzing',
       progress: 5,
-      message: 'Starting generation...',
+      message: 'Creating generation record...',
     })
 
-    // Also create record in Supabase for persistence
-    createGeneration({
-      generation_id: generationId,
-      hero_image_url: heroImageUrl,
-      art_style: payload.artStyle,
-      slide_count: payload.slideCount,
-      status: 'generating',
-    }).catch((error) => {
+    // Create record in Supabase FIRST (await it)
+    try {
+      await createGeneration({
+        generation_id: generationId,
+        hero_image_url: heroImageUrl,
+        art_style: payload.artStyle,
+        slide_count: payload.slideCount,
+        status: 'generating',
+      })
+      console.log(`Created generation record: ${generationId}`)
+    } catch (error) {
       console.error('Supabase createGeneration error:', error)
-      // Non-fatal - continue with generation
+      // Continue with generation even if DB fails
+    }
+
+    // Update status - starting generation
+    setGenerationStatus(generationId, {
+      status: 'generating',
+      progress: 10,
+      message: 'Generating slides...',
+      totalSlides: payload.slideCount,
     })
 
-    // Trigger n8n webhook (async - don't await)
-    triggerCarouselGeneration({
+    // Trigger n8n webhook and WAIT for response
+    // The static workflow uses responseMode: "lastNode" so it returns results synchronously
+    const result = await triggerCarouselGeneration({
       ...payload,
       heroImage: heroImageUrl,
       generationId,
-    }).catch((error) => {
-      console.error('n8n webhook error:', error)
+    })
+
+    console.log('n8n static workflow completed:', result.success)
+
+    // Extract slides from the result
+    const slides = result.results?.slides || result.slides || []
+    const isVideoEnabled = payload.outputType === 'video' || payload.outputType === 'both'
+
+    // Update status with results
+    if (slides.length > 0) {
+      // Determine if we're still processing video
+      const status = isVideoEnabled ? 'animating' : 'complete'
+      const progress = isVideoEnabled ? 50 : 100
+
+      setGenerationStatus(generationId, {
+        status,
+        progress,
+        message: isVideoEnabled ? 'Animating slides for video...' : 'Generation complete!',
+        results: {
+          slides: slides.map((slide: { slideNumber?: number; imageUrl: string }, index: number) => ({
+            id: `slide-${index + 1}`,
+            slideNumber: slide.slideNumber || index + 1,
+            imageUrl: slide.imageUrl,
+          })),
+        },
+      })
+
+      // Persist slides to Supabase in background
+      persistSlidesToSupabase(generationId, slides, isVideoEnabled).catch((error) => {
+        console.error('Supabase slide persistence error:', error)
+      })
+    } else {
+      // No slides returned - error state
       setGenerationStatus(generationId, {
         status: 'error',
         progress: 0,
-        error: 'Failed to connect to generation service',
+        error: 'No slides were generated',
       })
-    })
+
+      await updateGeneration(generationId, { status: 'error' }).catch(console.error)
+    }
 
     return NextResponse.json({
       success: true,
       generationId,
-      message: 'Generation started',
+      message: isVideoEnabled ? 'Generation in progress, video rendering...' : 'Generation complete',
     })
   } catch (error) {
     console.error('Generate carousel error:', error)
+
+    // Update status to error
+    setGenerationStatus(generationId, {
+      status: 'error',
+      progress: 0,
+      error: error instanceof Error ? error.message : 'Generation failed',
+    })
+
+    // Try to update database status
+    await updateGeneration(generationId, { status: 'error' }).catch(console.error)
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     )
+  }
+}
+
+// Persist slides to Supabase Storage
+async function persistSlidesToSupabase(
+  generationId: string,
+  slides: { slideNumber?: number; imageUrl: string }[],
+  isVideoEnabled: boolean
+): Promise<void> {
+  try {
+    // Upload images to Supabase Storage
+    const uploadedSlides = await Promise.all(
+      slides.map(async (slide, index) => {
+        const slideNumber = slide.slideNumber || index + 1
+        const storagePath = `${generationId}/slide-${slideNumber}.png`
+        const supabaseUrl = await uploadImageFromUrl(
+          slide.imageUrl,
+          'carousel-images',
+          storagePath
+        )
+
+        return {
+          slide_number: slideNumber,
+          headline: '',
+          body_text: '',
+          image_url: supabaseUrl || slide.imageUrl,
+          original_url: slide.imageUrl,
+        }
+      })
+    )
+
+    // Add slides to database
+    await addSlides(generationId, uploadedSlides)
+
+    // Update generation status if not waiting for video
+    if (!isVideoEnabled) {
+      await updateGeneration(generationId, { status: 'complete' })
+    }
+
+    console.log(`Persisted ${uploadedSlides.length} slides for generation ${generationId}`)
+  } catch (error) {
+    console.error('Error persisting slides:', error)
+    throw error
   }
 }
