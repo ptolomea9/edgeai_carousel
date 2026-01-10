@@ -98,6 +98,46 @@ Each art style has custom text styling applied in the video:
 
 Art styles: synthwave, anime, 3d-pixar, watercolor, minimalist, comic, photorealistic, custom
 
+### json2video Text Animation Styles
+Available kinetic typography animations for text overlays:
+
+| Style ID | Animation | Description |
+|----------|-----------|-------------|
+| `text/001` | Static | Plain static text |
+| `text/002` | Fade In | Smooth fade entrance |
+| `text/003` | Word-by-Word | Progressive word reveal |
+| `text/004` | Letter-by-Letter | Typewriter effect |
+| `text/005` | Jumping | Bouncing letters |
+| `text/006` | Revealing | Letter reveal effect |
+| `text/007` | Domino Effect | Cascading letter fall |
+| `text/008` | Split Animation | Ceiling/floor split |
+| `text/009` | Free Entry | Random letter entrance |
+| `text/010` | Free Exit | Random letter exit |
+| `text/011` | Block Display | Block text reveal |
+
+**Animation by Art Style** (recommended mappings):
+```javascript
+const textAnimationByStyle = {
+  'synthwave': 'text/005', // jumping (energetic)
+  'anime': 'text/003',     // word-by-word (dramatic)
+  '3d-pixar': 'text/002',  // fade in (smooth)
+  'watercolor': 'text/006', // revealing (artistic)
+  'minimalist': 'text/002', // fade in (clean)
+  'comic': 'text/005',     // jumping (dynamic)
+  'photorealistic': 'text/002', // fade in (subtle)
+  'custom': 'text/003'     // word-by-word (default)
+};
+```
+
+### Future Enhancement: Advanced Kinetic Typography APIs
+For more advanced animated captions (3D spatial, trendy social styles):
+
+| API | Best For | Docs |
+|-----|----------|------|
+| **Submagic** | Trendy social media captions | https://docs.submagic.co/introduction |
+| **Creatomate** | Custom animation templates | https://creatomate.com/docs/api/introduction |
+| **Shotstack** | Enterprise video automation | https://shotstack.io/docs/api/ |
+
 ## Environment Variables
 
 Create `.env.local` with:
@@ -176,3 +216,20 @@ interface SlideContent {
 - Video workflow is async - app polls n8n API for status
 - n8n Cloud cannot callback to localhost - polling is required
 - Comic style explicitly excludes speech bubbles in prompts
+
+## Recent Improvements (January 2026)
+
+### Art Style Prompt Adherence (IMPLEMENTED)
+Enhanced style prompts in "Generate Slide Prompts" node to prevent style drift:
+- Added "STRICT STYLE:" prefix for emphasis
+- Added negative prompts ("DO NOT use photorealistic rendering", "DO NOT use 3D shading", etc.)
+- Added detailed style descriptors for each art style
+- Added style reinforcement at end of each prompt: "CRITICAL: This is slide X of Y. Maintain EXACTLY the same style..."
+
+### json2video Text Visibility (IMPLEMENTED)
+Enhanced text overlays in "Build json2video Payload" node for better visibility:
+- Art-style-specific Google Fonts (Orbitron, Bangers, Poppins, etc.)
+- Strong text shadows for contrast against any background
+- More opaque backgrounds (dark instead of semi-transparent white)
+- Art-style-appropriate colors (neon for synthwave, yellow for comic, etc.)
+- Larger font sizes (64px headline, 48px body)
