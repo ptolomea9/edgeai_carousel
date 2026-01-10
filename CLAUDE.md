@@ -77,10 +77,12 @@ Two main workflows handle generation:
    - **Email notification**: Sends results via Gmail for all output modes
 
 2. **Video Workflow** (ID: `0MpzxUS4blJI7vgm`)
-   - Animates slides using kie.ai (Wan 2.6 model) at 720p
+   - Animates slides using kie.ai (Kling 2.6 model) at 720p with **10-second clips**
+   - Art-style-specific animation prompts with "NO speaking" instructions
    - Merges clips using json2video API at **1080x1920** (9:16 vertical)
    - Callbacks to production URL: `https://edgeai-carousel.vercel.app/api/status/{id}`
    - Uses `responseMode: "onReceived"` (async)
+   - Email includes both merged video URL and all static slide images
 
 ### APIs Used
 - **kie.ai**: Image generation (GPT Image 1.5) and image-to-video animation (Kling 2.6 model)
@@ -233,3 +235,30 @@ Enhanced text overlays in "Build json2video Payload" node for better visibility:
 - More opaque backgrounds (dark instead of semi-transparent white)
 - Art-style-appropriate colors (neon for synthwave, yellow for comic, etc.)
 - Larger font sizes (64px headline, 48px body)
+
+### Video Animation Improvements (IMPLEMENTED)
+Enhanced video clip generation for better user experience:
+
+**Clip Duration**: Changed from 5s to 10s
+- Provides adequate reading time for text overlays
+- Total video length: ~65s for 6 slides (was ~35s)
+- kie.ai cost: ~$3.30/carousel (was ~$1.68)
+
+**No Mouth Movement**: Added "NO speaking, NO talking, NO lip movement" to all animation prompts
+- Prevents confusing lip-sync animations when there's no audio
+- Art-style-specific prompts emphasize expressive body language and facial emotions instead
+
+**Wait Time Adjustments** (for longer processing):
+| Node | Old | New |
+|------|-----|-----|
+| Wait 5 min | 300s | 600s |
+| Wait 120s More | 120s | 240s |
+| Wait 30s (json2video) | 30s | 60s |
+| Wait 30s More | 30s | 60s |
+| Poll json2video timeout | 30000ms | 60000ms |
+
+### Email Results Fix (IMPLEMENTED)
+Fixed "Format Final Result" node to include static image URLs in email:
+- Extracts slides with imageUrl from Collect Video Clips node
+- Sets `hasImages: true` when images exist
+- Email now contains both merged video URL and all individual slide images
