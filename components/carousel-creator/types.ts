@@ -3,6 +3,7 @@ export interface SlideContent {
   slideNumber: number
   headline: string
   bodyText: string
+  characterAction?: string  // e.g., "owl perched on bridge, wings folded, head tilted curiously"
 }
 
 export interface CarouselConfig {

@@ -39,6 +39,7 @@ function generateSlideContents(count: number): SlideContent[] {
     slideNumber: i + 1,
     headline: '',
     bodyText: '',
+    characterAction: '',
   }))
 }
 
@@ -92,6 +93,7 @@ export function CarouselCreator() {
             slideNumber: i + 1,
             headline: '',
             bodyText: '',
+            characterAction: '',
           })
         }
         return newSlides

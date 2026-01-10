@@ -67,11 +67,14 @@ lib/
 Two main workflows handle generation:
 
 1. **Static Workflow** (ID: `UvvlI6vB4ystc3Vr`)
-   - Generates character-consistent slide images using **Seedream 4.5-edit** (kie.ai)
+   - Generates character-consistent slide images using **GPT Image 1.5** (via kie.ai)
    - True image-to-image generation: passes hero image as reference for character consistency
+   - **Per-slide character actions**: Users can specify poses/actions per slide for narrative storytelling
    - Output format: **9:16 vertical** (Instagram Reels optimized)
    - Uses `responseMode: "lastNode"` for synchronous response
    - Includes retry logic for failed slides
+   - **Conditional text rendering**: Static-only mode includes text in images; video/both modes generate text-free images
+   - **Email notification**: Sends results via Gmail for all output modes
 
 2. **Video Workflow** (ID: `0MpzxUS4blJI7vgm`)
    - Animates slides using kie.ai (Wan 2.6 model) at 720p
@@ -80,10 +83,11 @@ Two main workflows handle generation:
    - Uses `responseMode: "onReceived"` (async)
 
 ### APIs Used
-- **kie.ai**: Image generation (Seedream 4.5-edit with reference images) and image-to-video animation (Wan 2.6 model)
+- **kie.ai**: Image generation (GPT Image 1.5) and image-to-video animation (Kling 2.6 model)
 - **json2video**: Video concatenation with text overlays, transitions, and branding
 - **Google Gemini 3 Pro**: Hero image AI editing (remove background, enhance, studio lighting, etc.)
 - **OpenAI GPT-4o-mini**: Slide text auto-generation (headlines + body with min 2 bullets/sentences)
+- **OpenAI GPT-4o**: Hero image analysis for character consistency descriptions
 - **Supabase Storage**: Buckets for `carousel-images` and `carousel-videos`
 
 ### json2video Text Overlays
@@ -121,7 +125,7 @@ GOOGLE_GENERATIVE_AI_API_KEY=your-google-api-key
 1. User uploads hero image + configures carousel (email is **required**)
 2. User can optionally edit hero image with AI (Gemini 3 Pro) via `POST /api/generate-image`
 3. `POST /api/generate-carousel` triggers n8n static workflow
-4. n8n generates slides with character consistency using Seedream 4.5-edit
+4. n8n generates slides with character consistency using GPT Image 1.5 (includes per-slide character actions if provided)
 5. Frontend polls `GET /api/status/{id}` for progress
 6. If video enabled, static workflow triggers video workflow
 7. Video workflow animates slides, adds styled text overlays + branding, merges with json2video
@@ -139,9 +143,36 @@ GOOGLE_GENERATIVE_AI_API_KEY=your-google-api-key
 - `carousel-images`: Generated slide images
 - `carousel-videos`: Merged video outputs
 
+## Per-Slide Character Actions
+
+Users can specify character actions/poses for each slide to create narrative storytelling across the carousel.
+
+**Example**: Hero image is an owl. Carousel about "3 Tips for Home Buyers":
+- Slide 1: "owl perched on a stone bridge, wings folded neatly, head tilted curiously"
+- Slide 2: "owl mid-flight with wings fully extended, soaring through dramatic clouds"
+- Slide 3: "owl landing on oak branch, talons outstretched, wings braking gracefully"
+
+**SlideContent Type**:
+```typescript
+interface SlideContent {
+  id: string
+  slideNumber: number
+  headline: string
+  bodyText: string
+  characterAction?: string  // Per-slide pose/action description
+}
+```
+
+**Best Practices** (GPT Image 1.5):
+- Use Scene → Subject → Action → Environment structure
+- Be specific: "standing confidently with arms crossed" not "standing"
+- Include camera framing: "medium shot", "eye-level perspective"
+- Limit to 3-5 key elements per action description
+
 ## Development Notes
 
 - Dev server uses Turbopack (Next.js 16 default)
 - Static workflow returns slides synchronously
 - Video workflow is async - app polls n8n API for status
 - n8n Cloud cannot callback to localhost - polling is required
+- Comic style explicitly excludes speech bubbles in prompts

@@ -111,6 +111,15 @@ export function SlideTextEditor({
               placeholder="Body text or bullet points..."
               className="min-h-[60px] bg-black/50 border-gray-600 text-white text-xs placeholder:text-gray-600"
             />
+
+            <Textarea
+              value={slide.characterAction || ''}
+              onChange={(e) =>
+                updateSlide(index, { characterAction: e.target.value })
+              }
+              placeholder="Character action (e.g., 'owl perched on branch, wings folded, looking curious')..."
+              className="min-h-[40px] bg-black/50 border-gray-600 text-white text-xs placeholder:text-gray-600"
+            />
           </div>
         ))}
       </div>

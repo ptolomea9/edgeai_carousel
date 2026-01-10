@@ -15,6 +15,7 @@ export interface N8nWebhookPayload {
     slideNumber: number
     headline: string
     bodyText: string
+    characterAction?: string
   }[]
   branding?: {
     text: string
