@@ -7,6 +7,7 @@ import { Loader2, Sparkles, Images, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/hooks/use-toast'
 import { HeroImageUpload } from './hero-image-upload'
 import { HeroImageEditor } from './hero-image-editor'
 import { SlideCountSelector } from './slide-count-selector'
@@ -44,6 +45,8 @@ function generateSlideContents(count: number): SlideContent[] {
 }
 
 export function CarouselCreator() {
+  const { toast } = useToast()
+
   // Hero image state
   const [heroImage, setHeroImage] = useState<File | null>(null)
   const [heroImagePreview, setHeroImagePreview] = useState<string | null>(null)
@@ -182,7 +185,11 @@ export function CarouselCreator() {
       }
     } catch (error) {
       console.error('Auto-generate error:', error)
-      alert('Failed to generate text. Please try again.')
+      toast({
+        title: 'Text Generation Failed',
+        description: 'Please try again.',
+        variant: 'destructive',
+      })
     } finally {
       setIsGeneratingText(false)
     }
@@ -224,7 +231,11 @@ export function CarouselCreator() {
   // Handle generation
   const handleGenerate = async () => {
     if (!heroImage) {
-      alert('Please upload a hero image for character reference')
+      toast({
+        title: 'Hero Image Required',
+        description: 'Please upload a hero image for character reference',
+        variant: 'destructive',
+      })
       return
     }
 
@@ -260,6 +271,18 @@ export function CarouselCreator() {
 
         if (status.status === 'complete' || status.status === 'error') {
           setIsGenerating(false)
+          if (status.status === 'complete') {
+            toast({
+              title: 'Carousel Generated!',
+              description: `${status.results?.slides?.length || 0} slides ready for download`,
+            })
+          } else if (status.status === 'error') {
+            toast({
+              title: 'Generation Failed',
+              description: status.error || 'An error occurred during generation',
+              variant: 'destructive',
+            })
+          }
           return
         }
 
@@ -270,10 +293,16 @@ export function CarouselCreator() {
       pollStatus()
     } catch (error) {
       console.error('Generation error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Generation failed'
       setGenerationStatus({
         status: 'error',
         progress: 0,
-        error: error instanceof Error ? error.message : 'Generation failed',
+        error: errorMessage,
+      })
+      toast({
+        title: 'Generation Failed',
+        description: errorMessage,
+        variant: 'destructive',
       })
       setIsGenerating(false)
     }

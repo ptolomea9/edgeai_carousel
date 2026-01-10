@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter, JetBrains_Mono } from "next/font/google"
 import { Suspense } from "react"
 import { ErrorBoundary } from "@/components/error-boundary"
+import { Toaster } from "@/components/toaster"
 import "./globals.css"
 
 const inter = Inter({
@@ -60,6 +61,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <Suspense fallback={null}>{children}</Suspense>
         </ErrorBoundary>
+        <Toaster />
       </body>
     </html>
   )

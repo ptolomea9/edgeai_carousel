@@ -22,6 +22,33 @@ function getClient(): SupabaseClient {
   return supabase
 }
 
+// Status details stored in Supabase for serverless persistence
+export interface StatusDetails {
+  status: 'analyzing' | 'generating' | 'animating' | 'complete' | 'error'
+  progress: number
+  message?: string
+  currentSlide?: number
+  totalSlides?: number
+  results?: {
+    slides: {
+      id: string
+      slideNumber: number
+      imageUrl: string
+    }[]
+    zipUrl?: string
+    videoUrl?: string
+  }
+  error?: string
+}
+
+// Video execution tracking
+export interface VideoExecutionDetails {
+  pending: boolean
+  videoUrl?: string
+  videoClips?: { slideNumber: number; videoUrl: string }[]
+  lastChecked?: number
+}
+
 // Types for our database tables
 export interface Generation {
   id: string
@@ -33,6 +60,9 @@ export interface Generation {
   video_url: string | null
   zip_url: string | null
   created_at: string
+  status_details?: StatusDetails | null
+  video_execution?: VideoExecutionDetails | null
+  slides_config?: { headline: string; bodyText: string }[] | null
 }
 
 export interface Slide {
@@ -449,6 +479,189 @@ export async function getGenerationById(
     }
   } catch (error) {
     console.error('getGenerationById error:', error)
+    return null
+  }
+}
+
+// Store generation status in Supabase for serverless persistence
+export async function setStatusDetails(
+  generationId: string,
+  statusDetails: StatusDetails
+): Promise<boolean> {
+  if (!isConfigured) {
+    console.warn('Supabase not configured, status not persisted')
+    return false
+  }
+
+  try {
+    const client = getClient()
+
+    // Map status to the table's status column
+    const tableStatus: 'generating' | 'complete' | 'error' =
+      statusDetails.status === 'complete'
+        ? 'complete'
+        : statusDetails.status === 'error'
+          ? 'error'
+          : 'generating'
+
+    const { error } = await client
+      .from('generations')
+      .update({
+        status_details: statusDetails,
+        status: tableStatus,
+      })
+      .eq('generation_id', generationId)
+
+    if (error) {
+      console.error('setStatusDetails error:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('setStatusDetails error:', error)
+    return false
+  }
+}
+
+// Get generation status from Supabase
+export async function getStatusDetails(
+  generationId: string
+): Promise<StatusDetails | null> {
+  if (!isConfigured) {
+    return null
+  }
+
+  try {
+    const client = getClient()
+
+    const { data, error } = await client
+      .from('generations')
+      .select('status_details')
+      .eq('generation_id', generationId)
+      .single()
+
+    if (error || !data?.status_details) {
+      return null
+    }
+
+    return data.status_details as StatusDetails
+  } catch (error) {
+    console.error('getStatusDetails error:', error)
+    return null
+  }
+}
+
+// Store video execution info in Supabase
+export async function setVideoExecution(
+  generationId: string,
+  videoExecution: VideoExecutionDetails
+): Promise<boolean> {
+  if (!isConfigured) {
+    return false
+  }
+
+  try {
+    const client = getClient()
+
+    const { error } = await client
+      .from('generations')
+      .update({ video_execution: videoExecution })
+      .eq('generation_id', generationId)
+
+    if (error) {
+      console.error('setVideoExecution error:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('setVideoExecution error:', error)
+    return false
+  }
+}
+
+// Get video execution info from Supabase
+export async function getVideoExecution(
+  generationId: string
+): Promise<VideoExecutionDetails | null> {
+  if (!isConfigured) {
+    return null
+  }
+
+  try {
+    const client = getClient()
+
+    const { data, error } = await client
+      .from('generations')
+      .select('video_execution')
+      .eq('generation_id', generationId)
+      .single()
+
+    if (error || !data?.video_execution) {
+      return null
+    }
+
+    return data.video_execution as VideoExecutionDetails
+  } catch (error) {
+    console.error('getVideoExecution error:', error)
+    return null
+  }
+}
+
+// Store original slides config for later gallery display
+export async function setSlidesConfig(
+  generationId: string,
+  slides: { headline: string; bodyText: string }[]
+): Promise<boolean> {
+  if (!isConfigured) {
+    return false
+  }
+
+  try {
+    const client = getClient()
+
+    const { error } = await client
+      .from('generations')
+      .update({ slides_config: slides })
+      .eq('generation_id', generationId)
+
+    if (error) {
+      console.error('setSlidesConfig error:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('setSlidesConfig error:', error)
+    return false
+  }
+}
+
+// Get original slides config
+export async function getSlidesConfig(
+  generationId: string
+): Promise<{ headline: string; bodyText: string }[] | null> {
+  if (!isConfigured) {
+    return null
+  }
+
+  try {
+    const client = getClient()
+
+    const { data, error } = await client
+      .from('generations')
+      .select('slides_config')
+      .eq('generation_id', generationId)
+      .single()
+
+    if (error || !data?.slides_config) {
+      return null
+    }
+
+    return data.slides_config as { headline: string; bodyText: string }[]
+  } catch (error) {
+    console.error('getSlidesConfig error:', error)
     return null
   }
 }

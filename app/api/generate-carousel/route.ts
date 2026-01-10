@@ -11,6 +11,8 @@ import {
   updateGeneration,
   addSlides,
   uploadImageFromUrl,
+  setSlidesConfig,
+  getSlidesConfig,
 } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
@@ -34,13 +36,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Initialize status in memory
-    setGenerationStatus(generationId, {
-      status: 'analyzing',
-      progress: 0,
-      message: 'Uploading hero image...',
-    })
-
     // Upload hero image to Supabase Storage if it's base64
     let heroImageUrl = payload.heroImage
     if (payload.heroImage.startsWith('data:')) {
@@ -57,14 +52,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Update status
-    setGenerationStatus(generationId, {
-      status: 'analyzing',
-      progress: 5,
-      message: 'Creating generation record...',
-    })
-
-    // Create record in Supabase FIRST (await it)
+    // Create record in Supabase FIRST (required for status updates)
     try {
       await createGeneration({
         generation_id: generationId,
@@ -74,13 +62,28 @@ export async function POST(request: NextRequest) {
         status: 'generating',
       })
       console.log(`Created generation record: ${generationId}`)
+
+      // Store original slide text for later gallery display
+      if (payload.slides && payload.slides.length > 0) {
+        await setSlidesConfig(
+          generationId,
+          payload.slides.map((s) => ({ headline: s.headline, bodyText: s.bodyText }))
+        )
+      }
     } catch (error) {
       console.error('Supabase createGeneration error:', error)
       // Continue with generation even if DB fails
     }
 
+    // Initialize status in Supabase (now that record exists)
+    await setGenerationStatus(generationId, {
+      status: 'analyzing',
+      progress: 5,
+      message: 'Starting generation...',
+    })
+
     // Update status - starting generation
-    setGenerationStatus(generationId, {
+    await setGenerationStatus(generationId, {
       status: 'generating',
       progress: 10,
       message: 'Generating slides...',
@@ -107,7 +110,7 @@ export async function POST(request: NextRequest) {
       const status = isVideoEnabled ? 'animating' : 'complete'
       const progress = isVideoEnabled ? 50 : 100
 
-      setGenerationStatus(generationId, {
+      await setGenerationStatus(generationId, {
         status,
         progress,
         message: isVideoEnabled ? 'Animating slides for video...' : 'Generation complete!',
@@ -126,7 +129,7 @@ export async function POST(request: NextRequest) {
       })
     } else {
       // No slides returned - error state
-      setGenerationStatus(generationId, {
+      await setGenerationStatus(generationId, {
         status: 'error',
         progress: 0,
         error: 'No slides were generated',
@@ -143,12 +146,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Generate carousel error:', error)
 
-    // Update status to error
-    setGenerationStatus(generationId, {
+    // Update status to error (may fail if generation record wasn't created)
+    await setGenerationStatus(generationId, {
       status: 'error',
       progress: 0,
       error: error instanceof Error ? error.message : 'Generation failed',
-    })
+    }).catch(console.error)
 
     // Try to update database status
     await updateGeneration(generationId, { status: 'error' }).catch(console.error)
@@ -167,6 +170,9 @@ async function persistSlidesToSupabase(
   isVideoEnabled: boolean
 ): Promise<void> {
   try {
+    // Get original slide text from stored config
+    const slidesConfig = await getSlidesConfig(generationId)
+
     // Upload images to Supabase Storage
     const uploadedSlides = await Promise.all(
       slides.map(async (slide, index) => {
@@ -178,10 +184,13 @@ async function persistSlidesToSupabase(
           storagePath
         )
 
+        // Get original text from config (index-based)
+        const originalText = slidesConfig?.[index] || { headline: '', bodyText: '' }
+
         return {
           slide_number: slideNumber,
-          headline: '',
-          body_text: '',
+          headline: originalText.headline || '',
+          body_text: originalText.bodyText || '',
           image_url: supabaseUrl || slide.imageUrl,
           original_url: slide.imageUrl,
         }

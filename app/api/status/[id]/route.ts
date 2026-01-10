@@ -11,6 +11,7 @@ import {
   addSlides,
   uploadImageFromUrl,
   uploadVideoFromUrl,
+  getSlidesConfig,
 } from '@/lib/supabase'
 
 export async function GET(
@@ -27,11 +28,11 @@ export async function GET(
       )
     }
 
-    // First check local store
-    let localStatus = getStoredStatus(generationId)
+    // First check Supabase store
+    let localStatus = await getStoredStatus(generationId)
 
     // Check if there's a pending video execution
-    const videoInfo = getVideoExecutionInfo(generationId)
+    const videoInfo = await getVideoExecutionInfo(generationId)
 
     if (videoInfo?.pending) {
       // Poll n8n for video workflow status
@@ -40,7 +41,7 @@ export async function GET(
 
       if (videoResult.status === 'success' && videoResult.videoUrl) {
         // Video is complete! Update the local status and persist to Supabase
-        setVideoExecutionComplete(
+        await setVideoExecutionComplete(
           generationId,
           videoResult.videoUrl,
           videoResult.videoClips
@@ -144,7 +145,7 @@ export async function POST(
 
     // Import dynamically to avoid issues
     const { setGenerationStatus } = await import('@/lib/n8n')
-    setGenerationStatus(generationId, status)
+    await setGenerationStatus(generationId, status)
 
     // If generation is complete, persist to Supabase
     if (status.status === 'complete' && status.results?.slides) {
@@ -185,9 +186,12 @@ async function persistToSupabase(
   const videoUrl = status.results?.videoUrl
   const zipUrl = status.results?.zipUrl
 
+  // Get original slide text from stored config
+  const slidesConfig = await getSlidesConfig(generationId)
+
   // Upload images to Supabase Storage and collect new URLs
   const uploadedSlides = await Promise.all(
-    slides.map(async (slide) => {
+    slides.map(async (slide, index) => {
       const storagePath = `${generationId}/slide-${slide.slideNumber}.png`
       const supabaseUrl = await uploadImageFromUrl(
         slide.imageUrl,
@@ -195,10 +199,13 @@ async function persistToSupabase(
         storagePath
       )
 
+      // Get original text from config (index-based)
+      const originalText = slidesConfig?.[index] || { headline: '', bodyText: '' }
+
       return {
         slide_number: slide.slideNumber,
-        headline: '',
-        body_text: '',
+        headline: originalText.headline || '',
+        body_text: originalText.bodyText || '',
         image_url: supabaseUrl || slide.imageUrl,
         original_url: slide.imageUrl,
       }

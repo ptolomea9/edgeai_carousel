@@ -1,5 +1,14 @@
 // n8n webhook integration helpers
 
+import {
+  setStatusDetails,
+  getStatusDetails,
+  setVideoExecution,
+  getVideoExecution,
+  type StatusDetails,
+  type VideoExecutionDetails,
+} from './supabase'
+
 const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook'
 const N8N_API_URL = process.env.N8N_API_URL || 'https://edgeaimedia.app.n8n.cloud/api/v1'
 const N8N_API_KEY = process.env.N8N_API_KEY || ''
@@ -131,7 +140,7 @@ export async function triggerCarouselGeneration(
       if (videoSlides.length > 0) {
         const videoGenId = payload.generationId || staticResult.generationId
         // Mark video generation as pending before triggering
-        setVideoExecutionPending(videoGenId)
+        await setVideoExecutionPending(videoGenId)
         // Resolve musicTrackId to full URL for n8n
         const musicUrl = getMusicUrl(payload.musicTrackId)
         triggerVideoGeneration({
@@ -244,29 +253,28 @@ export async function getGenerationStatus(
   return response.json()
 }
 
-// In-memory store for development/demo purposes
-// In production, use Redis or database
-const statusStore = new Map<string, GenerationStatusResponse>()
+// Status persistence using Supabase for serverless compatibility
+// These functions are async to support database operations
 
-export function setGenerationStatus(
+export async function setGenerationStatus(
   generationId: string,
   status: GenerationStatusResponse
-) {
-  statusStore.set(generationId, status)
+): Promise<void> {
+  await setStatusDetails(generationId, status as StatusDetails)
 }
 
-export function getStoredStatus(
+export async function getStoredStatus(
   generationId: string
-): GenerationStatusResponse | undefined {
-  return statusStore.get(generationId)
+): Promise<GenerationStatusResponse | undefined> {
+  const status = await getStatusDetails(generationId)
+  return status as GenerationStatusResponse | undefined
 }
 
 export function generateId(): string {
   return `gen_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 }
 
-// Video execution tracking
-// Stores generationId -> { pending: boolean, videoUrl?: string }
+// Video execution tracking using Supabase for serverless compatibility
 interface VideoExecutionInfo {
   pending: boolean
   videoUrl?: string
@@ -274,22 +282,21 @@ interface VideoExecutionInfo {
   lastChecked?: number
 }
 
-const videoExecutionStore = new Map<string, VideoExecutionInfo>()
-
-export function setVideoExecutionPending(generationId: string) {
-  videoExecutionStore.set(generationId, { pending: true })
+export async function setVideoExecutionPending(generationId: string): Promise<void> {
+  await setVideoExecution(generationId, { pending: true })
 }
 
-export function getVideoExecutionInfo(generationId: string): VideoExecutionInfo | undefined {
-  return videoExecutionStore.get(generationId)
+export async function getVideoExecutionInfo(generationId: string): Promise<VideoExecutionInfo | undefined> {
+  const info = await getVideoExecution(generationId)
+  return info as VideoExecutionInfo | undefined
 }
 
-export function setVideoExecutionComplete(
+export async function setVideoExecutionComplete(
   generationId: string,
   videoUrl: string,
   videoClips?: { slideNumber: number; videoUrl: string }[]
-) {
-  videoExecutionStore.set(generationId, {
+): Promise<void> {
+  await setVideoExecution(generationId, {
     pending: false,
     videoUrl,
     videoClips,
