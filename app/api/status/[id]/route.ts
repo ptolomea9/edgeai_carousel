@@ -212,7 +212,10 @@ async function persistToSupabase(
   const uploadedSlides = await Promise.all(
     slides.map(async (slide, index) => {
       // Prefer processedImageUrl (text-baked) for static gallery
+      const hasProcessedUrl = !!slide.processedImageUrl
       const imageToUpload = slide.processedImageUrl || slide.imageUrl
+      console.log(`Slide ${slide.slideNumber}: hasProcessedUrl=${hasProcessedUrl}, uploading=${imageToUpload?.substring(0, 60)}...`)
+
       const storagePath = `${generationId}/slide-${slide.slideNumber}.png`
 
       const supabaseUrl = await uploadImageFromUrl(
@@ -222,7 +225,9 @@ async function persistToSupabase(
       )
 
       if (!supabaseUrl) {
-        console.warn(`Failed to upload slide ${slide.slideNumber} image, using original URL`)
+        console.warn(`Failed to upload slide ${slide.slideNumber} image, using original URL: ${imageToUpload}`)
+      } else {
+        console.log(`Slide ${slide.slideNumber}: uploaded to ${supabaseUrl}`)
       }
 
       // Use slide data directly, fall back to slidesConfig if missing
