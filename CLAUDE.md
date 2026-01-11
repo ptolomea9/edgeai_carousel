@@ -67,14 +67,15 @@ lib/
 Two main workflows handle generation:
 
 1. **Static Workflow** (ID: `UvvlI6vB4ystc3Vr`)
-   - Generates character-consistent slide images using **GPT Image 1.5** (via kie.ai)
-   - True image-to-image generation: passes hero image as reference for character consistency
+   - **Dual image generation**: Generates TWO images per slide (clean + text-baked)
+   - Uses **GPT Image 1.5** (via kie.ai) for image-to-image generation
+   - True character consistency: passes hero image as reference
    - **Per-slide character actions**: Users can specify poses/actions per slide for narrative storytelling
    - Output format: **9:16 vertical** (Instagram Reels optimized)
    - Uses `responseMode: "lastNode"` for synchronous response
    - Includes retry logic for failed slides
-   - **Post-processing text overlays**: Uses json2video to add reliable text overlays (GPT Image can't render text)
-   - **Email notification**: Sends results via Gmail for all output modes
+   - **25 nodes** total (simplified from 36)
+   - **Email notification**: Sends text-baked images via Gmail
 
 2. **Video Workflow** (ID: `0MpzxUS4blJI7vgm`)
    - **Current Version ID**: `7c1a57d5-5f56-4a8d-8e7e-54bc188443cb` (January 10, 2026)
@@ -311,22 +312,40 @@ Restored working "Build json2video Payload" node in video workflow after it was 
 
 **Rollback Reference**: If issues recur, workflow version 93 contains the working code.
 
-### Static Image Text Overlays (IMPLEMENTED - January 10, 2026)
-Added json2video post-processing to static workflow for reliable text overlays:
+### Dual Image Generation (IMPLEMENTED - January 11, 2026)
+Static workflow now generates TWO images per slide for different purposes:
 
-**Problem**: GPT Image 1.5 cannot reliably render text from prompts (garbled letters, missing text)
+**Problem**:
+- json2video does NOT support PNG export (video-only API)
+- Static images need text overlays for email/gallery
+- Video animation (Kling 2.6) needs CLEAN images (text added via json2video after)
 
-**Solution**: Added 8 new nodes to static workflow after "Collect All Results":
-1. "Build Text Overlay Payloads" - Prepares json2video payloads with art-style-specific text styling
-2. "Split for Text Overlay" - Splits slides for parallel processing
-3. "Create Text Overlay Job" - Calls json2video API
-4. "Extract Text Job ID" - Extracts project ID from response
-5. "Wait 30s (Text)" - Waits for processing
-6. "Poll Text Status" - Polls for completion
-7. "Extract Processed Image" - Extracts final image URL
-8. "Collect Processed Images" - Aggregates all processed images
+**Solution**: Generate two image sets per slide using GPT Image 1.5:
+1. **Clean image** (`imageUrl`) → for Kling 2.6 animation → text added via json2video in video
+2. **Text-baked image** (`processedImageUrl`) → for static email/gallery output (text rendered by GPT Image 1.5)
 
-Static workflow now generates clean images without text, then adds text overlays using json2video (same styling as video workflow). This ensures consistent, reliable text rendering across static and video outputs.
+**Static Workflow Changes** (25 nodes, down from 36):
+- "Generate Slide Prompts" - Creates both `cleanPrompt` and `textPrompt` per slide
+- "Split Into Slides" - Outputs 2 items per slide (one clean, one with text)
+- "Collect All Results" - Matches clean/text pairs by slideNumber, outputs both URLs
+- Removed 11 json2video text overlay nodes (no longer needed)
+
+**Data Flow**:
+```javascript
+// Each slide outputs:
+{
+  imageUrl: cleanImageUrl,           // Clean image for video animation
+  processedImageUrl: textImageUrl,   // Text-baked image for static output
+  headline: "...",
+  bodyText: "..."
+}
+```
+
+**Trade-offs**:
+- Doubles image generation API calls (2x cost for GPT Image 1.5)
+- GPT Image text quality may occasionally be garbled (user accepted)
+- Longer generation time (more images to generate)
+- Simpler workflow architecture (no json2video for static images)
 
 ## Video Workflow Architecture (Current)
 
