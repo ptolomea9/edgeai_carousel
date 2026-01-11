@@ -279,6 +279,38 @@ const consistencyReinforcement = 'CRITICAL ANATOMICAL LOCK: Character MUST maint
 extra limbs, extra arms, extra legs, extra wings, duplicate wings, triple wings, extra tails, extra heads, extra eyes, extra beaks, multiple heads, cloning, splitting, duplicating body parts, multiplying features, growing new parts, deformed hands, deformed limbs, morphing body parts, disappearing objects, warped geometry, distorted anatomy, flickering, temporal inconsistency, blurry, low quality, watermark, text, extra fingers, extra hands
 ```
 
+### Build json2video Payload Fix (IMPLEMENTED - January 10, 2026)
+Restored working "Build json2video Payload" node in video workflow after it was broken:
+
+**Problem**: json2video was failing with "Error rendering video" - video clips from kie.ai weren't stitching together.
+
+**Root Cause**: Node was "simplified" and lost critical fields:
+- Missing `duration: videoDuration` on all video elements
+- Changed `type: 'html'` to broken `type: 'text'` for text overlays
+- Changed `resolution: 'instagram-story'` to custom dimensions
+
+**Fix**: Restored working code from workflow version 93. Key elements:
+```javascript
+// Each scene now has proper structure:
+{
+  duration: videoDuration,  // CRITICAL - was missing
+  elements: [
+    {
+      type: 'video',
+      src: clip.videoUrl,
+      duration: videoDuration  // CRITICAL - was missing
+    },
+    {
+      type: 'html',  // Changed back from 'text'
+      html: `<div style="...">${headline}</div>`,
+      duration: videoDuration  // CRITICAL - was missing
+    }
+  ]
+}
+```
+
+**Rollback Reference**: If issues recur, workflow version 93 contains the working code.
+
 ### Static Image Text Overlays (IMPLEMENTED - January 10, 2026)
 Added json2video post-processing to static workflow for reliable text overlays:
 
