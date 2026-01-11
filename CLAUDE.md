@@ -327,9 +327,14 @@ Fixed video workflow's "Update App Status" node that was returning 404 errors:
   method: "POST",
   sendBody: true,
   specifyBody: "json",
-  jsonBody: "={{ JSON.stringify({ status: $json.status, progress: $json.progress, message: $json.message, results: $json.results }) }}"
+  // CRITICAL: Read from Format Final Result directly, NOT $json
+  // $json receives Gmail response after Send Email Results, not carousel data
+  url: "=https://edgeai-carousel.vercel.app/api/status/{{ $('Format Final Result').first().json.generationId }}",
+  jsonBody: "={{ '{\"status\": \"' + $('Format Final Result').first().json.status + '\"...}' }}"
 }
 ```
+
+**Key Insight**: When Update App Status runs after Send Email Results, `$json` contains the Gmail API response (just email ID), not the original carousel data. Must use `$('Format Final Result').first().json` to access the correct data.
 
 ### Text Styling Consistency (IMPLEMENTED - January 11, 2026)
 Updated static workflow's "Generate Slide Prompts" to match json2video text styling:
