@@ -49,3 +49,16 @@ coverage/
 
 # MCP
 .mcp.json
+
+# Temporary workflow helper files
+extract-settings.js
+fix-connections.js
+fixed-connections.json
+update-workflow.js
+video-fixed-connections.json
+video-nodes.json
+video-settings.json
+workflow-nodes.json
+workflow-settings.json
+workflow-update-payload.json
+

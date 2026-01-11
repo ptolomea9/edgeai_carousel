@@ -150,7 +150,7 @@ export function CarouselCreator() {
     }
   }
 
-  // Handle auto-generate slide text
+  // Handle auto-generate slide text (and character actions if hero image provided)
   const handleAutoGenerate = async () => {
     if (!topic.trim()) return
 
@@ -165,6 +165,7 @@ export function CarouselCreator() {
           topic,
           slideCount,
           artStyle,
+          heroImage: heroImagePreview, // Pass hero image for character action generation
         }),
       })
 
@@ -180,6 +181,7 @@ export function CarouselCreator() {
             ...slide,
             headline: data.slides[index]?.headline || slide.headline,
             bodyText: data.slides[index]?.bodyText || slide.bodyText,
+            characterAction: data.slides[index]?.characterAction || slide.characterAction,
           }))
         )
       }
@@ -262,8 +264,27 @@ export function CarouselCreator() {
 
       const { generationId } = await response.json()
 
-      // Poll for status
+      // Poll for status with timeout (15 minutes max for video generation)
+      const POLL_TIMEOUT_MS = 15 * 60 * 1000 // 15 minutes
+      const pollStartTime = Date.now()
+
       const pollStatus = async () => {
+        // Check for timeout
+        if (Date.now() - pollStartTime > POLL_TIMEOUT_MS) {
+          setIsGenerating(false)
+          setGenerationStatus({
+            status: 'error',
+            progress: 0,
+            error: 'Generation timed out. Please check your email for results or try again.',
+          })
+          toast({
+            title: 'Generation Timed Out',
+            description: 'The generation is taking longer than expected. Check your email for results.',
+            variant: 'destructive',
+          })
+          return
+        }
+
         const statusResponse = await fetch(`/api/status/${generationId}`)
         const status: GenerationStatus = await statusResponse.json()
 
@@ -380,19 +401,19 @@ export function CarouselCreator() {
 
             {/* Tabs for Configuration */}
             <div className="bg-black/70 border border-white/10 rounded-lg backdrop-blur-sm p-4">
-              <Tabs defaultValue="content" className="w-full">
+              <Tabs defaultValue="style" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 bg-black/50 border border-white/10 rounded-lg p-1">
-                  <TabsTrigger
-                    value="content"
-                    className="rounded-md data-[state=active]:bg-white data-[state=active]:text-black transition-all"
-                  >
-                    Content
-                  </TabsTrigger>
                   <TabsTrigger
                     value="style"
                     className="rounded-md data-[state=active]:bg-white data-[state=active]:text-black transition-all"
                   >
                     Style
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="content"
+                    className="rounded-md data-[state=active]:bg-white data-[state=active]:text-black transition-all"
+                  >
+                    Content
                   </TabsTrigger>
                   <TabsTrigger
                     value="output"
@@ -401,6 +422,18 @@ export function CarouselCreator() {
                     Output
                   </TabsTrigger>
                 </TabsList>
+
+                {/* Style Tab */}
+                <TabsContent value="style" className="mt-4 space-y-4">
+                  <section className="p-4 bg-black/50 border border-white/10 rounded-lg">
+                    <ArtStylePicker
+                      value={artStyle}
+                      onChange={setArtStyle}
+                      customPrompt={customStylePrompt}
+                      onCustomPromptChange={setCustomStylePrompt}
+                    />
+                  </section>
+                </TabsContent>
 
                 {/* Content Tab */}
                 <TabsContent value="content" className="mt-4 space-y-4">
@@ -430,18 +463,6 @@ export function CarouselCreator() {
                       onBrandingPositionChange={setBrandingPosition}
                       includeBranding={includeBranding}
                       onIncludeBrandingChange={setIncludeBranding}
-                    />
-                  </section>
-                </TabsContent>
-
-                {/* Style Tab */}
-                <TabsContent value="style" className="mt-4 space-y-4">
-                  <section className="p-4 bg-black/50 border border-white/10 rounded-lg">
-                    <ArtStylePicker
-                      value={artStyle}
-                      onChange={setArtStyle}
-                      customPrompt={customStylePrompt}
-                      onCustomPromptChange={setCustomStylePrompt}
                     />
                   </section>
                 </TabsContent>

@@ -2,13 +2,23 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
 // Only create client if valid credentials are provided
 const isConfigured =
   supabaseUrl.startsWith('http') && supabaseAnonKey.length > 0
 
+// Server client with service role key (bypasses RLS for server-side operations)
+const isServerConfigured =
+  supabaseUrl.startsWith('http') && supabaseServiceRoleKey.length > 0
+
 export const supabase: SupabaseClient | null = isConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
+  : null
+
+// Server client for operations requiring elevated privileges (uploads, etc.)
+export const supabaseServer: SupabaseClient | null = isServerConfigured
+  ? createClient(supabaseUrl, supabaseServiceRoleKey)
   : null
 
 export const isSupabaseConfigured = isConfigured
@@ -20,6 +30,15 @@ function getClient(): SupabaseClient {
     )
   }
   return supabase
+}
+
+function getServerClient(): SupabaseClient {
+  if (!supabaseServer) {
+    throw new Error(
+      'Supabase server client is not configured. Please add SUPABASE_SERVICE_ROLE_KEY to .env.local for storage uploads.'
+    )
+  }
+  return supabaseServer
 }
 
 // Status details stored in Supabase for serverless persistence
@@ -81,18 +100,19 @@ export interface GenerationWithSlides extends Generation {
 }
 
 // Helper to upload base64 image to Supabase Storage
+// Uses server client with service role key to bypass RLS
 export async function uploadBase64Image(
   base64Data: string,
   bucket: string,
   path: string
 ): Promise<string | null> {
-  if (!isConfigured) {
-    console.warn('Supabase not configured, skipping base64 image upload')
+  if (!isServerConfigured) {
+    console.warn('Supabase server client not configured (missing SUPABASE_SERVICE_ROLE_KEY), skipping base64 image upload')
     return null
   }
 
   try {
-    const client = getClient()
+    const client = getServerClient()
 
     // Extract the base64 content and mime type
     const matches = base64Data.match(/^data:([^;]+);base64,(.+)$/)

@@ -65,6 +65,18 @@ export default function GalleryPage() {
     fetchGenerations(0, false, filter)
   }, [filter])
 
+  // Auto-refresh when window gains focus (user returns to tab)
+  useEffect(() => {
+    const handleFocus = () => {
+      // Only refresh if not currently loading
+      if (!isLoading) {
+        fetchGenerations(0, false, filter)
+      }
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [filter, isLoading])
+
   const loadMore = () => {
     fetchGenerations(offset + limit, true, filter)
   }
