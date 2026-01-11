@@ -312,6 +312,44 @@ Restored working "Build json2video Payload" node in video workflow after it was 
 
 **Rollback Reference**: If issues recur, workflow version 93 contains the working code.
 
+### Video Workflow Status Callback Fix (IMPLEMENTED - January 11, 2026)
+Fixed video workflow's "Update App Status" node that was returning 404 errors:
+
+**Problem**: Video workflow completed successfully but video URL never appeared in gallery/preview.
+
+**Root Cause**: The "Update App Status" HTTP Request node was misconfigured:
+- Using GET method (default) instead of POST
+- Not sending any request body with the status data
+
+**Fix**: Updated node configuration:
+```javascript
+{
+  method: "POST",
+  sendBody: true,
+  specifyBody: "json",
+  jsonBody: "={{ JSON.stringify({ status: $json.status, progress: $json.progress, message: $json.message, results: $json.results }) }}"
+}
+```
+
+### Text Styling Consistency (IMPLEMENTED - January 11, 2026)
+Updated static workflow's "Generate Slide Prompts" to match json2video text styling:
+
+| Art Style | Font | Color | Effects |
+|-----------|------|-------|---------|
+| synthwave | Orbitron | #FF00FF (Magenta) | Neon glow |
+| anime | Bangers | #FF6B6B (Coral Red) | Black outline |
+| 3d-pixar | Fredoka One | #FFD93D (Golden Yellow) | Soft shadow |
+| watercolor | Pacifico | #5C4033 (Warm Brown) | White glow |
+| minimalist | Montserrat | #1A1A1A (Near Black) | None |
+| comic | Bangers | #FFFF00 (Bright Yellow) | Black stroke |
+| photorealistic | Playfair Display | #FFFFFF (White) | Dark shadow |
+| custom | Roboto | #FFFFFF (White) | Subtle shadow |
+
+Each style includes:
+- Semi-transparent rounded rectangle backgrounds (40-50% opacity)
+- Headline at top, body text in center-lower area
+- Text prompts now explicitly describe font style, color, and positioning
+
 ### Dual Image Generation (IMPLEMENTED - January 11, 2026)
 Static workflow now generates TWO images per slide for different purposes:
 
