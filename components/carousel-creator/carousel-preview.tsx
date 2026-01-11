@@ -23,6 +23,9 @@ export function CarouselPreview({ status, className }: CarouselPreviewProps) {
   const hasSlides = slides.length > 0
   const hasVideo = !!status?.results?.videoUrl
 
+  // Helper to get the best image URL (prefer text-baked for display)
+  const getDisplayUrl = (slide: GeneratedSlide) => slide.processedImageUrl || slide.imageUrl
+
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length)
   }
@@ -33,7 +36,9 @@ export function CarouselPreview({ status, className }: CarouselPreviewProps) {
 
   const downloadSlide = async (slide: GeneratedSlide) => {
     try {
-      const response = await fetch(slide.imageUrl)
+      // Download text-baked image when available
+      const imageUrl = getDisplayUrl(slide)
+      const response = await fetch(imageUrl)
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -220,7 +225,7 @@ export function CarouselPreview({ status, className }: CarouselPreviewProps) {
         ) : hasSlides && (
           <>
             <img
-              src={slides[currentSlide].imageUrl}
+              src={getDisplayUrl(slides[currentSlide])}
               alt={`Slide ${currentSlide + 1}`}
               className="w-full h-full object-contain"
             />
@@ -283,7 +288,7 @@ export function CarouselPreview({ status, className }: CarouselPreviewProps) {
               )}
             >
               <img
-                src={slide.imageUrl}
+                src={getDisplayUrl(slide)}
                 alt={`Slide ${idx + 1} thumbnail`}
                 className="w-full h-full object-cover"
               />

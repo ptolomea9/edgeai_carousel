@@ -85,5 +85,6 @@ export interface GenerationResult {
 export interface GeneratedSlide {
   id: string
   imageUrl: string
+  processedImageUrl?: string  // Text-baked image for static display
   slideNumber: number
 }
