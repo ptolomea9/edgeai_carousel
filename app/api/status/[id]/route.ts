@@ -148,10 +148,15 @@ export async function POST(
     await setGenerationStatus(generationId, status)
 
     // If generation is complete, persist to Supabase
+    // IMPORTANT: Must await this - serverless functions terminate after response is sent
     if (status.status === 'complete' && status.results?.slides) {
-      persistToSupabase(generationId, status).catch((error) => {
+      try {
+        await persistToSupabase(generationId, status)
+        console.log(`Successfully persisted slides for ${generationId}`)
+      } catch (error) {
         console.error('Supabase persistence error:', error)
-      })
+        // Don't fail the request - slides are non-critical
+      }
     }
 
     // If there's an error, update Supabase status
@@ -176,7 +181,14 @@ async function persistToSupabase(
   generationId: string,
   status: {
     results?: {
-      slides: { id: string; slideNumber: number; imageUrl: string }[]
+      slides: {
+        id: string
+        slideNumber: number
+        imageUrl: string
+        processedImageUrl?: string
+        headline?: string
+        bodyText?: string
+      }[]
       videoUrl?: string
       zipUrl?: string
     }
@@ -186,27 +198,37 @@ async function persistToSupabase(
   const videoUrl = status.results?.videoUrl
   const zipUrl = status.results?.zipUrl
 
-  // Get original slide text from stored config
+  console.log(`Persisting ${slides.length} slides for ${generationId}`)
+
+  // Get original slide text from stored config as fallback
   const slidesConfig = await getSlidesConfig(generationId)
 
   // Upload images to Supabase Storage and collect new URLs
+  // Use processedImageUrl (text-baked) if available, fall back to imageUrl (clean)
   const uploadedSlides = await Promise.all(
     slides.map(async (slide, index) => {
+      // Prefer processedImageUrl (text-baked) for static gallery
+      const imageToUpload = slide.processedImageUrl || slide.imageUrl
       const storagePath = `${generationId}/slide-${slide.slideNumber}.png`
+
       const supabaseUrl = await uploadImageFromUrl(
-        slide.imageUrl,
+        imageToUpload,
         'carousel-images',
         storagePath
       )
 
-      // Get original text from config (index-based)
-      const originalText = slidesConfig?.[index] || { headline: '', bodyText: '' }
+      if (!supabaseUrl) {
+        console.warn(`Failed to upload slide ${slide.slideNumber} image, using original URL`)
+      }
+
+      // Use slide data directly, fall back to slidesConfig if missing
+      const fallbackText = slidesConfig?.[index] || { headline: '', bodyText: '' }
 
       return {
         slide_number: slide.slideNumber,
-        headline: originalText.headline || '',
-        body_text: originalText.bodyText || '',
-        image_url: supabaseUrl || slide.imageUrl,
+        headline: slide.headline || fallbackText.headline || '',
+        body_text: slide.bodyText || fallbackText.bodyText || '',
+        image_url: supabaseUrl || imageToUpload,
         original_url: slide.imageUrl,
       }
     })
@@ -224,7 +246,8 @@ async function persistToSupabase(
   }
 
   // Add slides to database
-  await addSlides(generationId, uploadedSlides)
+  const slidesAdded = await addSlides(generationId, uploadedSlides)
+  console.log(`Added ${uploadedSlides.length} slides to database: ${slidesAdded ? 'success' : 'failed'}`)
 
   // Update generation status
   await updateGeneration(generationId, {
