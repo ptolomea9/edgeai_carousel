@@ -149,7 +149,9 @@ export async function POST(
 
     // If generation is complete, persist to Supabase
     // IMPORTANT: Must await this - serverless functions terminate after response is sent
+    console.log(`POST status update: status=${status.status}, hasSlides=${!!status.results?.slides}, slideCount=${status.results?.slides?.length || 0}`)
     if (status.status === 'complete' && status.results?.slides) {
+      console.log(`Starting persistence for ${generationId} with ${status.results.slides.length} slides`)
       try {
         await persistToSupabase(generationId, status)
         console.log(`Successfully persisted slides for ${generationId}`)
@@ -157,6 +159,8 @@ export async function POST(
         console.error('Supabase persistence error:', error)
         // Don't fail the request - slides are non-critical
       }
+    } else {
+      console.log(`Skipping persistence: status=${status.status}, slides=${status.results?.slides ? 'present' : 'missing'}`)
     }
 
     // If there's an error, update Supabase status
@@ -246,8 +250,9 @@ async function persistToSupabase(
   }
 
   // Add slides to database
+  console.log(`About to add ${uploadedSlides.length} slides for ${generationId}:`, JSON.stringify(uploadedSlides.map(s => ({ slide_number: s.slide_number, hasImageUrl: !!s.image_url }))))
   const slidesAdded = await addSlides(generationId, uploadedSlides)
-  console.log(`Added ${uploadedSlides.length} slides to database: ${slidesAdded ? 'success' : 'failed'}`)
+  console.log(`Added ${uploadedSlides.length} slides to database: ${slidesAdded ? 'success' : 'FAILED'}`)
 
   // Update generation status
   await updateGeneration(generationId, {
