@@ -402,7 +402,8 @@ export async function addSlides(
 export async function getGenerations(
   limit = 20,
   offset = 0,
-  filter: 'all' | 'static' | 'video' = 'all'
+  filter: 'all' | 'static' | 'video' = 'all',
+  userId?: string // Filter by user for RLS
 ): Promise<{ data: GenerationWithSlides[]; count: number }> {
   if (!isConfigured) {
     console.warn('Supabase not configured')
@@ -417,6 +418,11 @@ export async function getGenerations(
       .from('generations')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'complete')
+
+    // Filter by user if provided (RLS at application level)
+    if (userId) {
+      countQuery = countQuery.eq('user_id', userId)
+    }
 
     // Apply filter to count query
     if (filter === 'static') {
@@ -433,6 +439,11 @@ export async function getGenerations(
       .select('*')
       .eq('status', 'complete')
       .order('created_at', { ascending: false })
+
+    // Filter by user if provided (RLS at application level)
+    if (userId) {
+      query = query.eq('user_id', userId)
+    }
 
     // Apply filter
     if (filter === 'static') {
@@ -719,7 +730,10 @@ function extractStoragePath(url: string, bucket: string): string | null {
 
 // Delete a single generation and its associated storage files
 // Uses server client to bypass RLS for delete operations
-export async function deleteGeneration(generationId: string): Promise<{
+export async function deleteGeneration(
+  generationId: string,
+  userId?: string // If provided, verify ownership before deleting
+): Promise<{
   success: boolean
   error?: string
 }> {
@@ -739,6 +753,14 @@ export async function deleteGeneration(generationId: string): Promise<{
 
     if (fetchError || !generation) {
       return { success: false, error: 'Generation not found' }
+    }
+
+    // Verify ownership if userId provided (RLS at application level)
+    if (userId && generation.user_id !== userId) {
+      console.warn(
+        `User ${userId} attempted to delete generation ${generationId} owned by ${generation.user_id}`
+      )
+      return { success: false, error: 'Not authorized to delete this generation' }
     }
 
     // Collect all storage paths to delete
@@ -808,7 +830,10 @@ export async function deleteGeneration(generationId: string): Promise<{
 }
 
 // Delete multiple generations
-export async function deleteGenerations(generationIds: string[]): Promise<{
+export async function deleteGenerations(
+  generationIds: string[],
+  userId?: string // If provided, verify ownership before deleting each
+): Promise<{
   deleted: number
   errors: string[]
 }> {
@@ -816,7 +841,7 @@ export async function deleteGenerations(generationIds: string[]): Promise<{
   let deleted = 0
 
   for (const id of generationIds) {
-    const result = await deleteGeneration(id)
+    const result = await deleteGeneration(id, userId)
     if (result.success) {
       deleted++
     } else {

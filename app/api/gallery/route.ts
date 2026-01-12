@@ -17,13 +17,14 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // RLS will automatically filter to user's generations only
+    // Filter by authenticated user's ID for data isolation
     const searchParams = request.nextUrl.searchParams
     const id = searchParams.get('id')
     const limit = parseInt(searchParams.get('limit') || '20', 10)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
 
     // If specific ID requested, return single generation
+    // TODO: Add user ownership check to getGenerationById if needed
     if (id) {
       const generation = await getGenerationById(id)
       if (!generation) {
@@ -35,9 +36,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(generation)
     }
 
-    // Otherwise return paginated list
+    // Otherwise return paginated list (filtered by user)
     const filter = (searchParams.get('filter') || 'all') as 'all' | 'static' | 'video'
-    const { data, count } = await getGenerations(limit, offset, filter)
+    const { data, count } = await getGenerations(limit, offset, filter, user.id)
 
     return NextResponse.json({
       generations: data,

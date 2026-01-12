@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Delete the generations
-    const result = await deleteGenerations(ids)
+    // Delete the generations (only if owned by user)
+    const result = await deleteGenerations(ids, user.id)
 
     return NextResponse.json({
       deleted: result.deleted,
