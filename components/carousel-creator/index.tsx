@@ -413,7 +413,7 @@ export function CarouselCreator() {
       {/* Main content */}
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
         {/* Header with entrance animation */}
-        <div className="mb-8 flex items-center justify-between animate-fade-in-up">
+        <div className="mb-8 flex items-center justify-between animate-fade-in-up relative z-50">
           <div>
             <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-glow-teal">
               EdgeAI Carousel Creator
