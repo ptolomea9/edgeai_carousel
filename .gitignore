@@ -46,6 +46,8 @@ coverage/
 
 # Claude Code
 .claude/
+tmpclaude-*-cwd
+nul
 
 # MCP
 .mcp.json
