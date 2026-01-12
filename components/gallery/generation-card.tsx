@@ -1,7 +1,8 @@
 'use client'
 
+import { useState, useRef } from 'react'
 import Image from 'next/image'
-import { Play, Images, Check } from 'lucide-react'
+import { Play, Pause, Images, Check, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { GenerationWithSlides } from '@/lib/supabase'
 
@@ -11,6 +12,7 @@ interface GenerationCardProps {
   selectionMode?: boolean
   isSelected?: boolean
   onToggleSelect?: (id: string) => void
+  showVideoPreview?: boolean
   className?: string
 }
 
@@ -20,10 +22,25 @@ export function GenerationCard({
   selectionMode = false,
   isSelected = false,
   onToggleSelect,
+  showVideoPreview = false,
   className,
 }: GenerationCardProps) {
   const firstSlide = generation.slides[0]
   const hasVideo = !!generation.video_url
+  const [isPlaying, setIsPlaying] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  const toggleVideoPlay = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause()
+      } else {
+        videoRef.current.play()
+      }
+      setIsPlaying(!isPlaying)
+    }
+  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -63,9 +80,49 @@ export function GenerationCard({
         </div>
       )}
 
-      {/* Thumbnail */}
+      {/* Thumbnail / Video Preview */}
       <div className="relative aspect-square bg-gray-900 rounded-t-lg overflow-hidden">
-        {firstSlide?.image_url ? (
+        {showVideoPreview && hasVideo ? (
+          <>
+            {/* Video Player */}
+            <video
+              ref={videoRef}
+              src={generation.video_url!}
+              loop
+              playsInline
+              muted
+              onClick={toggleVideoPlay}
+              onEnded={() => setIsPlaying(false)}
+              className="absolute inset-0 w-full h-full object-cover cursor-pointer"
+            />
+
+            {/* Play/Pause overlay */}
+            <div
+              onClick={toggleVideoPlay}
+              className={cn(
+                'absolute inset-0 flex items-center justify-center transition-opacity duration-300 cursor-pointer',
+                isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100 bg-black/30'
+              )}
+            >
+              <div className="size-16 rounded-full bg-[var(--teal-500)]/90 flex items-center justify-center backdrop-blur-sm glow-teal">
+                {isPlaying ? (
+                  <Pause className="size-8 text-black" />
+                ) : (
+                  <Play className="size-8 text-black ml-1" />
+                )}
+              </div>
+            </div>
+
+            {/* Info button to open details */}
+            <button
+              onClick={onClick}
+              className="absolute top-2 right-2 p-2 bg-black/70 hover:bg-black/90 rounded-lg transition-colors z-10"
+              title="View details"
+            >
+              <Info className="size-4 text-white" />
+            </button>
+          </>
+        ) : firstSlide?.image_url ? (
           <Image
             src={firstSlide.image_url}
             alt={`${generation.art_style} carousel`}
@@ -79,15 +136,17 @@ export function GenerationCard({
           </div>
         )}
 
-        {/* Overlay on hover */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-          <span className="text-[var(--teal-300)] text-sm font-medium bg-black/50 px-3 py-1.5 rounded-lg backdrop-blur-sm">
-            {selectionMode ? (isSelected ? 'Deselect' : 'Select') : 'View Details'}
-          </span>
-        </div>
+        {/* Overlay on hover (only when not showing video preview) */}
+        {!(showVideoPreview && hasVideo) && (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+            <span className="text-[var(--teal-300)] text-sm font-medium bg-black/50 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+              {selectionMode ? (isSelected ? 'Deselect' : 'Select') : 'View Details'}
+            </span>
+          </div>
+        )}
 
-        {/* Video indicator with teal accent */}
-        {hasVideo && (
+        {/* Video indicator with teal accent (only when not showing video preview) */}
+        {hasVideo && !(showVideoPreview && hasVideo) && (
           <div className="absolute top-2 right-2 bg-[var(--teal-900)]/90 px-2 py-1 rounded-md flex items-center gap-1 backdrop-blur-sm border border-[var(--teal-700)]/50">
             <Play className="size-3 fill-[var(--teal-400)] text-[var(--teal-400)]" />
             <span className="text-xs text-[var(--teal-300)]">Video</span>

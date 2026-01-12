@@ -11,25 +11,43 @@ import {
   Images,
   Loader2,
   AlertCircle,
+  Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { GenerationWithSlides } from '@/lib/supabase'
+import { DeleteConfirmation } from './delete-confirmation'
 
 interface GenerationDetailProps {
   generation: GenerationWithSlides
   onClose: () => void
+  onDelete?: (id: string) => Promise<void>
 }
 
 export function GenerationDetail({
   generation,
   onClose,
+  onDelete,
 }: GenerationDetailProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [showVideo, setShowVideo] = useState(false)
   const [videoLoading, setVideoLoading] = useState(true)
   const [videoError, setVideoError] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  const handleDelete = async () => {
+    if (!onDelete) return
+    setIsDeleting(true)
+    try {
+      await onDelete(generation.generation_id)
+      onClose()
+    } catch (error) {
+      console.error('Delete error:', error)
+      setIsDeleting(false)
+    }
+  }
 
   const slides = generation.slides
   const hasVideo = !!generation.video_url
@@ -291,6 +309,17 @@ export function GenerationDetail({
                 Download Video
               </Button>
             )}
+
+            {onDelete && (
+              <Button
+                onClick={() => setShowDeleteConfirm(true)}
+                variant="outline"
+                className="w-full bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 rounded-lg"
+              >
+                <Trash2 className="size-4 mr-2" />
+                Delete Carousel
+              </Button>
+            )}
           </div>
 
           <p className="text-xs text-gray-500">
@@ -298,6 +327,16 @@ export function GenerationDetail({
           </p>
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      {showDeleteConfirm && (
+        <DeleteConfirmation
+          count={1}
+          isDeleting={isDeleting}
+          onConfirm={handleDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>
   )
 }

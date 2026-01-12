@@ -232,6 +232,7 @@ export interface GenerationStatusResponse {
       id: string
       slideNumber: number
       imageUrl: string
+      processedImageUrl?: string  // Text-baked image for static display
     }[]
     zipUrl?: string
     videoUrl?: string

@@ -53,6 +53,7 @@ export interface StatusDetails {
       id: string
       slideNumber: number
       imageUrl: string
+      processedImageUrl?: string  // Text-baked image for static display
     }[]
     zipUrl?: string
     videoUrl?: string
@@ -368,7 +369,14 @@ export async function addSlides(
       original_url: slide.original_url || null,
     }))
 
-    const { error } = await client.from('slides').insert(slidesWithGenId)
+    // Use upsert to handle duplicates gracefully (unique constraint on generation_id + slide_number)
+    // This allows the workflow to send both clean and text-baked images - the latest wins
+    const { error } = await client
+      .from('slides')
+      .upsert(slidesWithGenId, {
+        onConflict: 'generation_id,slide_number',
+        ignoreDuplicates: false, // Update on conflict, don't ignore
+      })
 
     if (error) {
       console.error('addSlides error:', error)
@@ -684,4 +692,124 @@ export async function getSlidesConfig(
     console.error('getSlidesConfig error:', error)
     return null
   }
+}
+
+// Helper to extract storage path from Supabase public URL
+function extractStoragePath(url: string, bucket: string): string | null {
+  if (!url) return null
+
+  // Supabase public URL format: https://{project}.supabase.co/storage/v1/object/public/{bucket}/{path}
+  const regex = new RegExp(`/storage/v1/object/public/${bucket}/(.+)$`)
+  const match = url.match(regex)
+  return match ? match[1] : null
+}
+
+// Delete a single generation and its associated storage files
+// Uses server client to bypass RLS for delete operations
+export async function deleteGeneration(generationId: string): Promise<{
+  success: boolean
+  error?: string
+}> {
+  if (!isServerConfigured) {
+    return { success: false, error: 'Supabase server client not configured' }
+  }
+
+  try {
+    const client = getServerClient()
+
+    // First, get the generation with its slides to find storage URLs
+    const { data: generation, error: fetchError } = await client
+      .from('generations')
+      .select('*, slides(*)')
+      .eq('generation_id', generationId)
+      .single()
+
+    if (fetchError || !generation) {
+      return { success: false, error: 'Generation not found' }
+    }
+
+    // Collect all storage paths to delete
+    const imagePaths: string[] = []
+    const videoPaths: string[] = []
+
+    // Get slide image paths
+    if (generation.slides && Array.isArray(generation.slides)) {
+      for (const slide of generation.slides) {
+        if (slide.image_url) {
+          const path = extractStoragePath(slide.image_url, 'carousel-images')
+          if (path) imagePaths.push(path)
+        }
+        if (slide.original_url) {
+          const path = extractStoragePath(slide.original_url, 'carousel-images')
+          if (path) imagePaths.push(path)
+        }
+      }
+    }
+
+    // Get video path
+    if (generation.video_url) {
+      const path = extractStoragePath(generation.video_url, 'carousel-videos')
+      if (path) videoPaths.push(path)
+    }
+
+    // Get hero image path
+    if (generation.hero_image_url) {
+      const path = extractStoragePath(generation.hero_image_url, 'carousel-images')
+      if (path) imagePaths.push(path)
+    }
+
+    // Delete storage files (don't fail if storage delete fails)
+    if (imagePaths.length > 0) {
+      const { error: imageDeleteError } = await client.storage
+        .from('carousel-images')
+        .remove(imagePaths)
+      if (imageDeleteError) {
+        console.warn('Failed to delete some images:', imageDeleteError)
+      }
+    }
+
+    if (videoPaths.length > 0) {
+      const { error: videoDeleteError } = await client.storage
+        .from('carousel-videos')
+        .remove(videoPaths)
+      if (videoDeleteError) {
+        console.warn('Failed to delete video:', videoDeleteError)
+      }
+    }
+
+    // Delete the generation record (slides cascade automatically)
+    const { error: deleteError } = await client
+      .from('generations')
+      .delete()
+      .eq('generation_id', generationId)
+
+    if (deleteError) {
+      return { success: false, error: deleteError.message }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('deleteGeneration error:', error)
+    return { success: false, error: String(error) }
+  }
+}
+
+// Delete multiple generations
+export async function deleteGenerations(generationIds: string[]): Promise<{
+  deleted: number
+  errors: string[]
+}> {
+  const errors: string[] = []
+  let deleted = 0
+
+  for (const id of generationIds) {
+    const result = await deleteGeneration(id)
+    if (result.success) {
+      deleted++
+    } else {
+      errors.push(`${id}: ${result.error}`)
+    }
+  }
+
+  return { deleted, errors }
 }

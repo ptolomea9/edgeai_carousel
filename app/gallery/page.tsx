@@ -3,9 +3,10 @@
 import { useState, useEffect, memo, useCallback } from 'react'
 import Link from 'next/link'
 import { Dithering } from '@paper-design/shaders-react'
-import { Loader2, Plus, Download, X, Images, Video, Layers } from 'lucide-react'
+import { Loader2, Plus, Download, X, Images, Video, Layers, Trash2 } from 'lucide-react'
 import { GenerationCard } from '@/components/gallery/generation-card'
 import { GenerationDetail } from '@/components/gallery/generation-detail'
+import { DeleteConfirmation } from '@/components/gallery/delete-confirmation'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { GenerationWithSlides } from '@/lib/supabase'
@@ -30,6 +31,8 @@ export default function GalleryPage() {
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isDownloading, setIsDownloading] = useState(false)
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const limit = 20
 
@@ -144,6 +147,49 @@ export default function GalleryPage() {
     }
   }
 
+  // Bulk delete handler
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch('/api/gallery/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete')
+      }
+
+      // Remove deleted items from state
+      setGenerations((prev) => prev.filter((g) => !selectedIds.has(g.id)))
+      exitSelectionMode()
+      setShowBulkDeleteConfirm(false)
+    } catch (error) {
+      console.error('Bulk delete failed:', error)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  // Single delete handler (passed to GenerationDetail)
+  const handleSingleDelete = async (generationId: string) => {
+    const response = await fetch('/api/gallery/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: [generationId] }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to delete')
+    }
+
+    // Remove deleted item from state
+    setGenerations((prev) => prev.filter((g) => g.generation_id !== generationId))
+  }
+
   if (error) {
     return (
       <div className="min-h-screen bg-black text-white relative">
@@ -220,7 +266,7 @@ export default function GalleryPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleBulkDownload}
-                  disabled={selectedIds.size === 0 || isDownloading}
+                  disabled={selectedIds.size === 0 || isDownloading || isDeleting}
                   className="bg-white text-black hover:bg-gray-200 rounded-lg"
                 >
                   {isDownloading ? (
@@ -234,6 +280,16 @@ export default function GalleryPage() {
                       Download Selected
                     </>
                   )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowBulkDeleteConfirm(true)}
+                  disabled={selectedIds.size === 0 || isDownloading || isDeleting}
+                  className="bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 rounded-lg"
+                >
+                  <Trash2 className="size-4 mr-2" />
+                  Delete Selected
                 </Button>
                 <Button
                   variant="outline"
@@ -346,6 +402,7 @@ export default function GalleryPage() {
                     selectionMode={selectionMode}
                     isSelected={selectedIds.has(gen.id)}
                     onToggleSelect={toggleSelection}
+                    showVideoPreview={filter === 'video'}
                   />
                 </div>
               ))}
@@ -385,6 +442,17 @@ export default function GalleryPage() {
         <GenerationDetail
           generation={selectedGeneration}
           onClose={() => setSelectedGeneration(null)}
+          onDelete={handleSingleDelete}
+        />
+      )}
+
+      {/* Bulk delete confirmation dialog */}
+      {showBulkDeleteConfirm && (
+        <DeleteConfirmation
+          count={selectedIds.size}
+          isDeleting={isDeleting}
+          onConfirm={handleBulkDelete}
+          onCancel={() => setShowBulkDeleteConfirm(false)}
         />
       )}
     </div>

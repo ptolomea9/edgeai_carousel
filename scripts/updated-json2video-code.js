@@ -1,5 +1,5 @@
 // Build json2video API payload for merging video clips with text overlays
-// Round 6.2: Fixed to pass through videoClips and other data for email
+// v7.0: Added kinetic typography animations for headlines
 const data = $input.first().json;
 
 if (!data.videoClips || data.videoClips.length === 0) {
@@ -7,7 +7,6 @@ if (!data.videoClips || data.videoClips.length === 0) {
     json: {
       error: 'No video clips to merge',
       payload: null,
-      // Still pass through for downstream
       generationId: data.generationId,
       recipientEmail: data.recipientEmail,
       videoClips: [],
@@ -22,11 +21,11 @@ if (!data.videoClips || data.videoClips.length === 0) {
 function sanitizeText(text) {
   if (!text) return '';
   return text
-    .replace(/:\s*-\s*/g, ': ')      // Remove ": -" patterns
-    .replace(/^\s*-\s*/g, '')         // Remove leading dashes
-    .replace(/!{2,}/g, '!')           // Clean up multiple exclamation marks
-    .replace(/[!?.:,]+$/g, match => match[0])  // Remove trailing punctuation combos
-    .replace(/\s{2,}/g, ' ')          // Clean up double spaces
+    .replace(/:\s*-\s*/g, ': ')
+    .replace(/^\s*-\s*/g, '')
+    .replace(/!{2,}/g, '!')
+    .replace(/[!?.:,]+$/g, match => match[0])
+    .replace(/\s{2,}/g, ' ')
     .trim();
 }
 
@@ -34,12 +33,10 @@ function sanitizeText(text) {
 function formatBodyTextAsHtml(text, style) {
   if (!text) return null;
 
-  // Detect if text has bullet points (lines starting with -)
   const lines = text.split('\n');
   const hasBullets = lines.some(line => line.trim().startsWith('-'));
 
   if (hasBullets) {
-    // Format as HTML list
     let html = '';
     let inList = false;
 
@@ -63,15 +60,32 @@ function formatBodyTextAsHtml(text, style) {
 
     return html;
   } else {
-    // Format as paragraphs with line breaks
     return text.split('\n').filter(l => l.trim()).map(l =>
       `<p style="margin: 8px 0;">${l.trim()}</p>`
     ).join('');
   }
 }
 
+// ============================================================
+// TEXT ANIMATION MAPPING - Art style specific kinetic typography
+// ============================================================
+// Animation style IDs from json2video:
+// 001 = Static, 002 = Fade In, 003 = Word-by-Word, 004 = Letter-by-Letter
+// 005 = Jumping, 006 = Revealing, 007 = Domino, 008 = Split
+// 009 = Free Entry, 010 = Free Exit, 011 = Block Display
+// ============================================================
+const textAnimationByStyle = {
+  'synthwave': '005',      // jumping - energetic neon vibes
+  'anime': '003',          // word-by-word - dramatic reveal
+  '3d-pixar': '002',       // fade in - smooth, friendly
+  'watercolor': '006',     // revealing - artistic, flowing
+  'minimalist': '002',     // fade in - clean, professional
+  'comic': '005',          // jumping - dynamic action
+  'photorealistic': '002', // fade in - subtle, elegant
+  'custom': '003'          // word-by-word - default
+};
+
 // Art style to text styling mapping
-// ALL background opacities at 0.4
 const artStyleTextMap = {
   'synthwave': {
     headlineFont: 'Orbitron',
@@ -165,6 +179,7 @@ const artStyleTextMap = {
 
 const artStyle = data.artStyle || 'synthwave';
 const style = artStyleTextMap[artStyle] || artStyleTextMap['synthwave'];
+const animationStyle = textAnimationByStyle[artStyle] || '002';
 const videoDuration = 5;
 
 const scenes = [];
@@ -179,36 +194,44 @@ for (const clip of data.videoClips) {
     duration: videoDuration
   });
 
-  // HEADLINE - read from clip.headline, centered at top with full-width wrapper
+  // ============================================================
+  // HEADLINE - Native text element with KINETIC ANIMATION
+  // ============================================================
   const cleanHeadline = sanitizeText(clip.headline);
   if (cleanHeadline) {
-    let textShadowCss = '';
-    if (style.headlineShadow && style.headlineShadow !== 'none') {
-      textShadowCss = `text-shadow: ${style.headlineShadow};`;
+    // Determine shadow level (0-3) based on style
+    let shadowLevel = 2;  // Default medium shadow
+    if (style.headlineShadow === 'none') {
+      shadowLevel = 0;
+    } else if (style.headlineShadow.includes('40px') || style.headlineShadow.includes('20px')) {
+      shadowLevel = 3;  // Strong glow (synthwave)
     }
 
     elements.push({
-      type: 'html',
-      html: `<div style="width: 1080px; display: flex; justify-content: center; padding-top: 120px;">
-        <div style="
-          font-family: ${style.headlineFont}, sans-serif;
-          font-size: ${style.headlineSize}px;
-          color: ${style.headlineColor};
-          font-weight: bold;
-          background-color: ${style.bgColor};
-          ${textShadowCss}
-          text-align: center;
-          padding: 10px 20px;
-          border-radius: 8px;
-          max-width: 90%;
-        ">${cleanHeadline}</div>
-      </div>`,
+      type: 'text',
+      style: animationStyle,  // Kinetic animation style ID
+      text: cleanHeadline,
       duration: videoDuration,
-      position: 'top-left'
+      x: 0,
+      y: 120,
+      width: 1080,
+      height: 0,
+      settings: {
+        'color': style.headlineColor,
+        'font-size': `${style.headlineSize}px`,
+        'font-family': style.headlineFont,
+        'font-weight': 'bold',
+        'text-align': 'center',
+        'vertical-align': 'top',
+        'shadow': shadowLevel,
+        'background-color': style.bgColor
+      }
     });
   }
 
-  // BODY - read from clip.bodyText, centered at y:800
+  // ============================================================
+  // BODY - HTML element (NO animation, supports bullets/formatting)
+  // ============================================================
   const bodyHtml = formatBodyTextAsHtml(clip.bodyText, style);
   if (bodyHtml) {
     let textShadowCss = '';
@@ -239,14 +262,15 @@ for (const clip of data.videoClips) {
     });
   }
 
-  // BRANDING - bottom-right corner watermark
+  // ============================================================
+  // BRANDING - HTML element (NO animation, bottom-right watermark)
+  // ============================================================
   if (data.branding && data.branding.text) {
     let textShadowCss = '';
     if (style.headlineShadow && style.headlineShadow !== 'none') {
       textShadowCss = `text-shadow: ${style.headlineShadow};`;
     }
-    
-    // Size is 70% of headline size
+
     const brandingSize = Math.round(style.headlineSize * 0.7);
 
     elements.push({
@@ -293,7 +317,7 @@ return [{
     artStyle: data.artStyle,
     recipientEmail: data.recipientEmail,
     branding: data.branding,
-    videoClips: data.videoClips,  // REQUIRED for email
+    videoClips: data.videoClips,
     totalClips: data.totalClips,
     successCount: data.successCount,
     allSuccess: data.allSuccess,

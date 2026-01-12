@@ -4,7 +4,7 @@ import { useCallback } from 'react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Sparkles, Loader2 } from 'lucide-react'
+import { Sparkles, Loader2, Wand2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { SlideContent } from './types'
 
@@ -15,6 +15,9 @@ interface SlideTextEditorProps {
   onTopicChange: (topic: string) => void
   onAutoGenerate: () => void
   isGenerating?: boolean
+  heroImage?: string | null
+  onGenerateAction?: (slideId: string) => void
+  generatingActionSlideId?: string | null
   className?: string
 }
 
@@ -25,6 +28,9 @@ export function SlideTextEditor({
   onTopicChange,
   onAutoGenerate,
   isGenerating = false,
+  heroImage,
+  onGenerateAction,
+  generatingActionSlideId,
   className,
 }: SlideTextEditorProps) {
   const updateSlide = useCallback(
@@ -112,14 +118,46 @@ export function SlideTextEditor({
               className="min-h-[60px] bg-black/50 border-gray-600 text-white text-xs placeholder:text-gray-600"
             />
 
-            <Textarea
-              value={slide.characterAction || ''}
-              onChange={(e) =>
-                updateSlide(index, { characterAction: e.target.value })
-              }
-              placeholder="Character action (e.g., 'owl perched on branch, wings folded, looking curious')..."
-              className="min-h-[40px] bg-black/50 border-gray-600 text-white text-xs placeholder:text-gray-600"
-            />
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-gray-500">Character Action</label>
+                {onGenerateAction && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onGenerateAction(slide.id)}
+                    disabled={!heroImage || generatingActionSlideId === slide.id}
+                    title={!heroImage ? 'Upload a hero image first' : 'Generate character action from slide content'}
+                    className={cn(
+                      'h-6 px-2 text-xs',
+                      heroImage
+                        ? 'text-[var(--teal-400)] hover:text-[var(--teal-300)] hover:bg-[var(--teal-900)]/30'
+                        : 'text-gray-600 cursor-not-allowed'
+                    )}
+                  >
+                    {generatingActionSlideId === slide.id ? (
+                      <>
+                        <Loader2 className="size-3 mr-1 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="size-3 mr-1" />
+                        Generate
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+              <Textarea
+                value={slide.characterAction || ''}
+                onChange={(e) =>
+                  updateSlide(index, { characterAction: e.target.value })
+                }
+                placeholder="Character action (e.g., 'owl perched on branch, wings folded, looking curious')..."
+                className="min-h-[40px] bg-black/50 border-gray-600 text-white text-xs placeholder:text-gray-600"
+              />
+            </div>
           </div>
         ))}
       </div>

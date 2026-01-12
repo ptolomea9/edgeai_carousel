@@ -25,13 +25,18 @@ export async function POST(request: NextRequest) {
     const model = useVision ? 'gpt-4o' : 'gpt-4o-mini'
 
     // Build the prompt based on whether we have a hero image
+    // Enhanced for Kling 2.6 which supports 5-7 elements and prefers detailed, structured prompts
     const characterActionInstructions = useVision
       ? `
-3. A character action describing how the character from the hero image should be posed/positioned for this slide. Use this format:
+3. A character action describing how the character from the hero image should be posed in this slide's image. Use this exact structure:
+   - Follow Scene → Subject → Action → Environment format
    - Be specific: "standing confidently with arms crossed" not just "standing"
-   - Include scene context: environment, camera angle, mood
-   - Each slide should show variety/progression in the character's pose
-   - Example: "owl perched on a stone bridge, wings folded neatly, head tilted curiously, medium shot"`
+   - Include camera framing: "medium shot", "close-up", "wide shot", "low angle", etc.
+   - Consider the ${artStyle} visual style for appropriate mood/atmosphere
+   - Keep to 2-3 sentences maximum
+   - Each slide should show variety/progression - make poses relate to the slide's message
+   - Suggest dynamic or interesting angles when appropriate
+   - Example: "Medium shot, low angle. Owl perched majestically on ancient stone bridge, wings folded neatly against body, head tilted curiously toward viewer. Soft golden hour lighting with misty forest background."`
       : ''
 
     const responseFormat = useVision

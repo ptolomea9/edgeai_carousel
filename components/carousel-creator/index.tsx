@@ -66,6 +66,7 @@ export function CarouselCreator() {
   )
   const [topic, setTopic] = useState('')
   const [isGeneratingText, setIsGeneratingText] = useState(false)
+  const [generatingActionSlideId, setGeneratingActionSlideId] = useState<string | null>(null)
 
   // Branding state
   const [includeBranding, setIncludeBranding] = useState(true)
@@ -194,6 +195,64 @@ export function CarouselCreator() {
       })
     } finally {
       setIsGeneratingText(false)
+    }
+  }
+
+  // Generate character action for a single slide
+  const handleGenerateAction = async (slideId: string) => {
+    if (!heroImagePreview) {
+      toast({
+        title: 'Hero Image Required',
+        description: 'Please upload a hero image to generate character actions.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const slide = slides.find((s) => s.id === slideId)
+    if (!slide) return
+
+    setGeneratingActionSlideId(slideId)
+    try {
+      const response = await fetch('/api/generate-action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          heroImage: heroImagePreview,
+          slideNumber: slide.slideNumber,
+          headline: slide.headline,
+          bodyText: slide.bodyText,
+          artStyle,
+          totalSlides: slideCount,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate character action')
+      }
+
+      const data = await response.json()
+
+      if (data.characterAction) {
+        setSlides((prev) =>
+          prev.map((s) =>
+            s.id === slideId
+              ? { ...s, characterAction: data.characterAction }
+              : s
+          )
+        )
+      }
+    } catch (error) {
+      console.error('Generate action error:', error)
+      toast({
+        title: 'Generation Failed',
+        description: 'Could not generate character action. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setGeneratingActionSlideId(null)
     }
   }
 
@@ -451,6 +510,9 @@ export function CarouselCreator() {
                       onTopicChange={setTopic}
                       onAutoGenerate={handleAutoGenerate}
                       isGenerating={isGeneratingText}
+                      heroImage={heroImagePreview}
+                      onGenerateAction={handleGenerateAction}
+                      generatingActionSlideId={generatingActionSlideId}
                     />
                   </section>
 

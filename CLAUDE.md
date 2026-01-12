@@ -392,10 +392,10 @@ Static workflow now generates TWO images per slide for different purposes:
 - Longer generation time (more images to generate)
 - Simpler workflow architecture (no json2video for static images)
 
-### Kinetic Typography for Headlines (IMPLEMENTED - January 11, 2026)
-Added dynamic text animations to video headlines using json2video's native text element:
+### Kinetic Typography for Headlines (RESTORED - January 11, 2026)
+Video headlines now use kinetic typography animations for dynamic visual appeal:
 
-**Change**: Headlines now use `type: 'text'` with animation instead of static `type: 'html'`
+**Change**: Headlines use `type: 'text'` with animation, body text remains `type: 'html'` for bullet formatting
 
 **Animation Mapping by Art Style**:
 | Art Style | Animation ID | Effect |
@@ -409,7 +409,7 @@ Added dynamic text animations to video headlines using json2video's native text 
 | photorealistic | `002` | Fade in (subtle) |
 | custom | `003` | Word-by-word (default) |
 
-**Implementation** (Build json2video Payload node):
+**Implementation** (Build json2video Payload node v7.0):
 ```javascript
 // Headline with kinetic animation
 elements.push({
@@ -431,17 +431,217 @@ elements.push({
 });
 ```
 
-**Hybrid Approach**:
-- **Headlines**: `type: 'text'` with animation (most impactful)
-- **Body text**: `type: 'html'` (supports bullets/formatting, no animation)
-- **Branding**: `type: 'html'` (positioned in corner, no animation needed)
+**Hybrid Approach** (CURRENT):
+- **Headlines**: `type: 'text'` with animation (kinetic typography)
+- **Body text**: `type: 'html'` (supports bullets/formatting, static)
+- **Branding**: `type: 'html'` (positioned bottom-right, static watermark)
 
-**Rollback**: Tag `pre-text-animations` contains the previous version without kinetic typography.
+**Local Script**: `scripts/updated-json2video-code.js` contains the v7.0 code with animations.
+
+**Rollback**: If animation issues occur, version 116 contains the stable `type: 'html'` approach for all text elements.
+
+### Video Text Readability Enhancement (IMPLEMENTED - January 11, 2026)
+Enhanced video body text for better mobile readability based on trending TikTok/Reels practices.
+
+**Changes to "Build json2video Payload" node (v8.0)**:
+1. **+5px body font size** across all art styles
+2. **Text stroke outline** via `-webkit-text-stroke` for "pop" effect
+3. **Background opacity 40% → 65%** for better contrast
+
+**Updated Body Text Sizes**:
+| Art Style | Old Size | New Size | Stroke |
+|-----------|----------|----------|--------|
+| synthwave | 64px | 69px | 1px black |
+| anime | 60px | 65px | 2px black |
+| 3d-pixar | 56px | 61px | 1px black |
+| watercolor | 54px | 59px | 1px brown |
+| minimalist | 48px | 53px | 1px white |
+| comic | 56px | 61px | 3px black |
+| photorealistic | 48px | 53px | 1px black |
+| custom | 48px | 53px | 1px black |
+
+**Sources**: [Kapwing](https://www.kapwing.com/resources/social-media-captions-styles-a-complete-guide/), [CapCut](https://www.capcut.com/resource/caption-style/)
+
+### TypeScript Type Fix for processedImageUrl (IMPLEMENTED - January 11, 2026)
+Fixed preview showing clean images instead of text-baked images.
+
+**Root Cause**: TypeScript type definitions were missing `processedImageUrl` field.
+
+**Files Fixed**:
+- `lib/supabase.ts` line 56: Added `processedImageUrl?: string` to StatusDetails.slides
+- `lib/n8n.ts` line 235: Added `processedImageUrl?: string` to GenerationStatusResponse.slides
+
+### Video Text Positioning Fix (IMPLEMENTED - January 12, 2026)
+Fixed broken text positioning after v8.0 enhancement update caused headline/body overlap.
+
+**Problem**: After v8.0 update, video text was "completely off/overlapping":
+- Headlines overlapped body text
+- Scene transitions were missing
+
+**Root Cause** (v8.0 broke positioning):
+```javascript
+// BROKEN (v8.0) - wrong positioning approach
+elements.push({
+  type: 'html',
+  html: `<div style="...">${headline}</div>`,
+  position: 'custom',
+  x: 540,   // Wrong - center-based
+  y: 120,
+  duration: videoDuration
+});
+
+// Body - WRONG
+elements.push({
+  type: 'html',
+  position: 'center',  // Wrong
+  y: 100,              // Only 100px offset = overlaps headline!
+});
+```
+
+**Fix (v8.1)** - Restored working positioning from v116:
+```javascript
+// CORRECT - headline at top with full-width wrapper
+elements.push({
+  type: 'html',
+  html: `<div style="width: 1080px; display: flex; justify-content: center; padding-top: 120px;">
+    <div style="...">${headline}</div>
+  </div>`,
+  duration: videoDuration,
+  position: 'top-left'  // Uses wrapper div for centering
+});
+
+// Body - CORRECT - positioned at y: 800 (lower half of 1920px frame)
+elements.push({
+  type: 'html',
+  html: `<div style="width: 1080px; display: flex; justify-content: center;">
+    <div style="...">${bodyHtml}</div>
+  </div>`,
+  duration: videoDuration,
+  position: 'custom',
+  x: 0,
+  y: 800  // In lower-center area
+});
+
+// Scenes must include transitions
+scenes.push({
+  elements,
+  transition: { style: 'fade', duration: 0.5 }  // Was missing in v8.0
+});
+```
+
+**Key Positioning Rules for json2video**:
+- Use `position: 'top-left'` with `width: 1080px` wrapper div + flexbox for centered headlines
+- Use `position: 'custom', x: 0, y: 800` with `width: 1080px` wrapper for body text
+- Video frame is 1080x1920 (9:16), so y: 800 places body in lower-center
+- Always include `transition` property on scenes for smooth fades
+
+**Enhancements Preserved** (from v8.0):
+- +5px body font sizes for mobile readability
+- `-webkit-text-stroke` for text "pop" effect
+- 65% background opacity (up from 40%)
+
+**Rollback Reference**: If positioning issues recur, workflow version 116 contains working positioning code.
+
+### Hero Image Adherence & Character Consistency (IMPLEMENTED - January 11, 2026)
+Enhanced "Generate Slide Prompts" node with layered prompt structure for better GPT Image 1.5 fidelity:
+
+**Problem**: Generated images were drifting from the hero/reference image, and characters looked different across slides.
+
+**Solution**: Added multiple prompt layers that reinforce consistency:
+
+1. **Hero Adherence Prompt** (at prompt start):
+```javascript
+const heroAdherencePrompt = `REFERENCE IMAGE ADHERENCE (CRITICAL):
+The generated image MUST closely match the character/subject from the provided reference image.
+- PRESERVE: Exact facial features, body proportions, species characteristics
+- PRESERVE: Clothing, outfit, colors, patterns, accessories
+- PRESERVE: Distinctive markings, textures, unique visual features
+- PRIORITY: Reference image fidelity over artistic interpretation
+`;
+```
+
+2. **Character Consistency Prompt** (per slide):
+```javascript
+const characterConsistencyPrompt = `CHARACTER CONSISTENCY ACROSS SLIDES (CRITICAL):
+This is slide ${index + 1} of ${slides.length}. The character MUST be IDENTICAL across ALL slides:
+- SAME face/head structure and features
+- SAME body type and proportions
+- SAME clothing/outfit/colors
+- SAME distinctive markings or patterns
+`;
+```
+
+3. **Character Negative Prompt** (prevents drift):
+```javascript
+const characterNegativePrompt = `
+DO NOT change the character's appearance. DO NOT alter facial features or body shape.
+DO NOT modify clothing or colors. DO NOT introduce different characters.
+`;
+```
+
+4. **Enhanced Style Reinforcement**:
+```javascript
+const styleReinforcement = `
+CRITICAL CONSISTENCY REQUIREMENTS:
+- This is slide ${index + 1} of ${slides.length}
+- Maintain EXACTLY the same ${artStyle} visual style
+- Keep the SAME character from the reference image
+- Character must look identical to previous/next slides
+- Do not drift toward photorealism or other styles
+- Prioritize visual consistency over variation
+`;
+```
+
+**Final Prompt Structure**:
+```
+heroAdherencePrompt → characterConsistencyPrompt → stylePrompt → Scene description → characterNegativePrompt → styleReinforcement
+```
+
+**Local Script**: `scripts/updated-static-code.js` contains the v2.0 prompt code.
+
+### Minimum Font Sizes for Text-Baked Images (IMPLEMENTED - January 11, 2026)
+Added explicit minimum font size requirements to text-baked image prompts to match video overlay sizes:
+
+| Art Style | Headline Min | Body Min |
+|-----------|--------------|----------|
+| synthwave | 72px | 69px |
+| anime | 68px | 65px |
+| 3d-pixar | 64px | 61px |
+| watercolor | 60px | 59px |
+| minimalist | 56px | 53px |
+| comic | 72px | 69px |
+| photorealistic | 54px | 53px |
+| custom | 60px | 59px |
+
+**Implementation** (Generate Slide Prompts node):
+```javascript
+const textStylePrompts = {
+  'synthwave': {
+    headline: 'Use ORBITRON-style futuristic blocky font for headline, glowing BRIGHT MAGENTA (#FF00FF) color, MINIMUM 72px font size, with strong neon glow effect',
+    body: 'Use ORBITRON-style futuristic font for body text, BRIGHT MAGENTA (#FF00FF) color, MINIMUM 69px font size, with subtle neon glow',
+    headlineMinSize: 72,
+    bodyMinSize: 69,
+    background: 'Text on semi-transparent black rounded rectangle background (65% opacity)'
+  },
+  // ... same structure for all 8 styles
+};
+
+// In text prompt:
+const textPrompt = `...
+FONT SIZE REQUIREMENTS:
+- Headline: MINIMUM ${textStyle.headlineMinSize}px - must be clearly readable on mobile
+- Body text: MINIMUM ${textStyle.bodyMinSize}px - must be clearly readable on mobile
+- Text must be LARGE enough to read on 9:16 vertical format
+- Do NOT use small or decorative-only text sizes
+...`;
+```
+
+**Background Opacity**: Changed from 40% to 65% across all styles for better text visibility.
 
 ## Video Workflow Architecture (Current)
 
 **Workflow ID**: `0MpzxUS4blJI7vgm`
-**Last Updated**: January 11, 2026
+**Last Updated**: January 11, 2026 (v7.0 - kinetic typography restored)
 **Node Count**: 38
 
 ### Node Flow
