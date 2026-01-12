@@ -60,7 +60,7 @@ export const MUSIC_TRACKS: MusicTrack[] = [
 ]
 
 // Art style to recommended music mapping
-// These will be replaced with AI-generated tracks from ElevenLabs
+// Pre-generated AI instrumental tracks from ElevenLabs Music API, stored in Supabase
 export type ArtStyleKey = 'synthwave' | 'anime' | '3d-pixar' | 'watercolor' | 'minimalist' | 'comic' | 'photorealistic' | 'custom'
 
 export const MUSIC_BY_ART_STYLE: Record<ArtStyleKey, MusicTrack> = {
@@ -69,64 +69,64 @@ export const MUSIC_BY_ART_STYLE: Record<ArtStyleKey, MusicTrack> = {
     name: 'Neon Dreams',
     genre: 'Synthwave',
     duration: '0:30',
-    previewUrl: '', // Will be populated by pre-generation
-    fullUrl: '',
+    previewUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/synthwave.mp3',
+    fullUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/synthwave.mp3',
   },
   anime: {
     id: 'style-anime',
     name: 'Epic Journey',
     genre: 'Anime',
     duration: '0:30',
-    previewUrl: '',
-    fullUrl: '',
+    previewUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/anime.mp3',
+    fullUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/anime.mp3',
   },
   '3d-pixar': {
     id: 'style-3d-pixar',
     name: 'Whimsical Adventure',
     genre: '3D Pixar',
     duration: '0:30',
-    previewUrl: '',
-    fullUrl: '',
+    previewUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/3d-pixar.mp3',
+    fullUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/3d-pixar.mp3',
   },
   watercolor: {
     id: 'style-watercolor',
     name: 'Gentle Flow',
     genre: 'Watercolor',
     duration: '0:30',
-    previewUrl: '',
-    fullUrl: '',
+    previewUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/watercolor.mp3',
+    fullUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/watercolor.mp3',
   },
   minimalist: {
     id: 'style-minimalist',
     name: 'Clean Focus',
     genre: 'Minimalist',
     duration: '0:30',
-    previewUrl: '',
-    fullUrl: '',
+    previewUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/minimalist.mp3',
+    fullUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/minimalist.mp3',
   },
   comic: {
     id: 'style-comic',
     name: 'Hero Rising',
     genre: 'Comic',
     duration: '0:30',
-    previewUrl: '',
-    fullUrl: '',
+    previewUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/comic.mp3',
+    fullUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/comic.mp3',
   },
   photorealistic: {
     id: 'style-photorealistic',
     name: 'Cinematic Mood',
     genre: 'Photorealistic',
     duration: '0:30',
-    previewUrl: '',
-    fullUrl: '',
+    previewUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/photorealistic.mp3',
+    fullUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/photorealistic.mp3',
   },
   custom: {
     id: 'style-custom',
     name: 'Modern Vibes',
     genre: 'Custom',
     duration: '0:30',
-    previewUrl: '',
-    fullUrl: '',
+    previewUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/custom.mp3',
+    fullUrl: 'https://qcdgmkjvnjcxytjtqqia.supabase.co/storage/v1/object/public/carousel-music/styles/custom.mp3',
   },
 }
 
