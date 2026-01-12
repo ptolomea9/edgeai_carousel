@@ -243,8 +243,37 @@ Enhanced text overlays in "Build json2video Payload" node for better visibility:
 Video clip generation configuration:
 
 **Clip Duration**: 5 seconds per slide
-- Total video length: ~30-35s for 6 slides
+- Total video length varies by slide count (see table below)
 - kie.ai cost: ~$1.68/carousel
+
+| Slides | Video Duration |
+|--------|----------------|
+| 3 | ~15s |
+| 6 | ~30s |
+| 10 | ~50s |
+
+### Background Music / Soundtrack (IMPLEMENTED - January 12, 2026)
+Music tracks are 30 seconds but video can be up to 50 seconds (10 slides × 5s).
+
+**Solution**: json2video audio element with infinite loop:
+```javascript
+payload.elements = [{
+  type: 'audio',
+  src: musicUrl,
+  duration: -2,    // Match movie length
+  loop: -1,        // Infinite loop
+  volume: 0.4,     // 40% volume (background level)
+  'fade-out': 2    // 2s fade at end
+}];
+```
+
+**Key Points**:
+- Audio added at movie level (not scene level) so it plays across all scenes
+- `duration: -2` extends audio to match total video length
+- `loop: -1` loops the 30s track as many times as needed
+- `volume: 0.4` keeps music from overpowering text/voiceover
+
+**Local Script**: `scripts/updated-json2video-code.js` contains the v7.1 code with soundtrack support.
 
 **Wait Times**:
 | Node | Duration |

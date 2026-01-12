@@ -1,5 +1,6 @@
 // Build json2video API payload for merging video clips with text overlays
 // v7.0: Added kinetic typography animations for headlines
+// v7.1: Added soundtrack with infinite loop to support any video length (3-10+ slides)
 const data = $input.first().json;
 
 if (!data.videoClips || data.videoClips.length === 0) {
@@ -305,10 +306,28 @@ for (const clip of data.videoClips) {
   });
 }
 
+// ============================================================
+// BUILD FINAL PAYLOAD WITH OPTIONAL SOUNDTRACK
+// ============================================================
 const payload = {
   resolution: 'instagram-story',
   scenes
 };
+
+// Add soundtrack if musicUrl is provided
+// Uses loop: -1 (infinite) and duration: -2 (match movie length) to handle any video length
+if (data.musicUrl) {
+  payload.elements = [
+    {
+      type: 'audio',
+      src: data.musicUrl,
+      duration: -2,      // Match entire movie duration
+      loop: -1,          // Loop indefinitely
+      volume: 0.4,       // Background level (40%) so it doesn't overpower text
+      'fade-out': 2      // 2 second fade out at end
+    }
+  ];
+}
 
 // CRITICAL: Pass through videoClips and other data for downstream nodes (email)
 return [{
