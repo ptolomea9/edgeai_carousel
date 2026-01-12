@@ -254,6 +254,7 @@ export interface N8nWebhookPayload {
   }
   outputType: 'static' | 'video' | 'both'
   musicTrackId?: string
+  musicUrl?: string // Direct URL for custom-generated tracks (bypasses getMusicUrl lookup)
   recipientEmail?: string
 }
 
@@ -308,8 +309,10 @@ export async function triggerCarouselGeneration(
         const videoGenId = payload.generationId || staticResult.generationId
         // Mark video generation as pending before triggering
         await setVideoExecutionPending(videoGenId)
-        // Resolve musicTrackId to full URL for n8n
-        const musicUrl = getMusicUrl(payload.musicTrackId)
+        // Use provided musicUrl (for custom generated tracks) or resolve from trackId
+        console.log('Music selection - trackId:', payload.musicTrackId, 'directUrl:', payload.musicUrl)
+        const musicUrl = payload.musicUrl || getMusicUrl(payload.musicTrackId)
+        console.log('Resolved musicUrl:', musicUrl)
         triggerVideoGeneration({
           generationId: videoGenId,
           slides: videoSlides,

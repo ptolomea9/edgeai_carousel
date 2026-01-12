@@ -79,6 +79,7 @@ export function CarouselCreator() {
   const [selectedMusicTrackId, setSelectedMusicTrackId] = useState<
     string | null
   >(null)
+  const [selectedMusicUrl, setSelectedMusicUrl] = useState<string | null>(null)
   const [recipientEmail, setRecipientEmail] = useState('')
 
   // Generation state
@@ -285,6 +286,7 @@ export function CarouselCreator() {
         : undefined,
       outputType,
       musicTrackId: selectedMusicTrackId || undefined,
+      musicUrl: selectedMusicUrl || undefined,
       recipientEmail: recipientEmail.trim() || undefined,
     }),
     [
@@ -297,6 +299,7 @@ export function CarouselCreator() {
       brandingText,
       outputType,
       selectedMusicTrackId,
+      selectedMusicUrl,
       recipientEmail,
     ]
   )
@@ -552,7 +555,10 @@ export function CarouselCreator() {
                     <section className="p-4 bg-black/50 border border-white/10 rounded-lg">
                       <MusicLibrary
                         selectedTrackId={selectedMusicTrackId}
-                        onSelectTrack={setSelectedMusicTrackId}
+                        onSelectTrack={(trackId, musicUrl) => {
+                          setSelectedMusicTrackId(trackId)
+                          setSelectedMusicUrl(musicUrl || null)
+                        }}
                         artStyle={artStyle}
                       />
                     </section>

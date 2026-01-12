@@ -18,6 +18,7 @@ export interface CarouselConfig {
   }
   outputType: OutputType
   musicTrackId?: string
+  musicUrl?: string // Direct URL for custom-generated tracks (bypasses getMusicUrl lookup)
   recipientEmail?: string // Email to send results to
 }
 

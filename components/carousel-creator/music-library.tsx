@@ -46,7 +46,7 @@ type MusicMode = 'style-match' | 'library' | 'custom'
 
 interface MusicLibraryProps {
   selectedTrackId: string | null
-  onSelectTrack: (trackId: string | null) => void
+  onSelectTrack: (trackId: string | null, musicUrl?: string) => void
   artStyle?: ArtStyle
   className?: string
 }
@@ -129,8 +129,8 @@ export function MusicLibrary({
       }
 
       setGeneratedTrack(newTrack)
-      // Auto-select the generated track
-      onSelectTrack(newTrack.id)
+      // Auto-select the generated track (pass URL for custom tracks)
+      onSelectTrack(newTrack.id, newTrack.musicUrl)
     } catch (error) {
       setGenerationError(error instanceof Error ? error.message : 'Failed to generate')
     } finally {
@@ -140,7 +140,7 @@ export function MusicLibrary({
 
   const handleSelectGeneratedTrack = () => {
     if (generatedTrack) {
-      onSelectTrack(generatedTrack.id)
+      onSelectTrack(generatedTrack.id, generatedTrack.musicUrl)
     }
   }
 
