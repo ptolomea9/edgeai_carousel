@@ -203,10 +203,10 @@ export default function GalleryPage() {
 
       {/* Main content */}
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between animate-fade-in-up">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Gallery</h1>
-            <p className="text-gray-400 mt-1">
+            <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-glow-teal">Gallery</h1>
+            <p className="text-gray-400 mt-2 text-sm md:text-base">
               Browse your generated carousel collections
             </p>
           </div>
@@ -251,13 +251,13 @@ export default function GalleryPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setSelectionMode(true)}
-                  className="bg-black/70 border-white/20 text-gray-300 hover:bg-black/90 hover:border-white/40 rounded-lg"
+                  className="bg-black/70 border-white/20 text-gray-300 hover:bg-[var(--teal-900)]/30 hover:text-[var(--teal-300)] hover:border-[var(--teal-700)] rounded-lg transition-all duration-300"
                 >
                   Select Multiple
                 </Button>
                 <Link
                   href="/"
-                  className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition-all shadow-lg shadow-white/10"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[var(--teal-500)] to-[var(--teal-600)] text-black font-medium rounded-lg hover:from-[var(--teal-400)] hover:to-[var(--teal-500)] transition-all duration-300 glow-teal-sm hover:glow-teal"
                 >
                   <Plus className="size-4" />
                   Create New
@@ -267,17 +267,17 @@ export default function GalleryPage() {
           </div>
         </div>
 
-        {/* Filter tabs */}
-        <div className="mb-6 flex gap-2">
+        {/* Filter tabs with teal accent */}
+        <div className="mb-6 flex gap-2 animate-fade-in-up delay-100">
           <Button
             variant={filter === 'all' ? 'default' : 'outline'}
             size="sm"
             onClick={() => handleFilterChange('all')}
             className={cn(
-              'rounded-lg',
+              'rounded-lg transition-all duration-300',
               filter === 'all'
-                ? 'bg-white text-black hover:bg-gray-200'
-                : 'bg-black/70 border-white/20 text-gray-300 hover:bg-black/90'
+                ? 'bg-[var(--teal-500)] text-black hover:bg-[var(--teal-400)] glow-teal-sm'
+                : 'bg-black/70 border-white/20 text-gray-300 hover:bg-[var(--teal-900)]/30 hover:text-[var(--teal-300)] hover:border-[var(--teal-700)]'
             )}
           >
             <Layers className="size-4 mr-2" />
@@ -288,10 +288,10 @@ export default function GalleryPage() {
             size="sm"
             onClick={() => handleFilterChange('static')}
             className={cn(
-              'rounded-lg',
+              'rounded-lg transition-all duration-300',
               filter === 'static'
-                ? 'bg-white text-black hover:bg-gray-200'
-                : 'bg-black/70 border-white/20 text-gray-300 hover:bg-black/90'
+                ? 'bg-[var(--teal-500)] text-black hover:bg-[var(--teal-400)] glow-teal-sm'
+                : 'bg-black/70 border-white/20 text-gray-300 hover:bg-[var(--teal-900)]/30 hover:text-[var(--teal-300)] hover:border-[var(--teal-700)]'
             )}
           >
             <Images className="size-4 mr-2" />
@@ -302,10 +302,10 @@ export default function GalleryPage() {
             size="sm"
             onClick={() => handleFilterChange('video')}
             className={cn(
-              'rounded-lg',
+              'rounded-lg transition-all duration-300',
               filter === 'video'
-                ? 'bg-white text-black hover:bg-gray-200'
-                : 'bg-black/70 border-white/20 text-gray-300 hover:bg-black/90'
+                ? 'bg-[var(--teal-500)] text-black hover:bg-[var(--teal-400)] glow-teal-sm'
+                : 'bg-black/70 border-white/20 text-gray-300 hover:bg-[var(--teal-900)]/30 hover:text-[var(--teal-300)] hover:border-[var(--teal-700)]'
             )}
           >
             <Video className="size-4 mr-2" />
@@ -315,34 +315,39 @@ export default function GalleryPage() {
 
 
         {isLoading && generations.length === 0 ? (
-          <div className="flex items-center justify-center py-24 bg-black/70 rounded-lg border border-white/10">
-            <Loader2 className="size-8 animate-spin text-gray-400" />
+          <div className="flex items-center justify-center py-24 bg-black/70 rounded-xl border border-white/10 noise-overlay animate-fade-in-up delay-200">
+            <Loader2 className="size-8 animate-spin text-[var(--teal-500)]" />
           </div>
         ) : generations.length === 0 ? (
-          <div className="text-center py-24 bg-black/70 rounded-lg border border-white/10">
-            <p className="text-gray-400 text-lg">No generations yet</p>
+          <div className="text-center py-24 bg-black/70 rounded-xl border border-white/10 noise-overlay animate-fade-in-up delay-200">
+            <p className="text-gray-400 text-lg font-display">No generations yet</p>
             <p className="text-gray-500 text-sm mt-2">
               Create your first carousel to see it here
             </p>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {generations.map((gen) => (
-                <GenerationCard
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fade-in-up delay-200">
+              {generations.map((gen, index) => (
+                <div
                   key={gen.id}
-                  generation={gen}
-                  onClick={() => {
-                    if (selectionMode) {
-                      toggleSelection(gen.id)
-                    } else {
-                      setSelectedGeneration(gen)
-                    }
-                  }}
-                  selectionMode={selectionMode}
-                  isSelected={selectedIds.has(gen.id)}
-                  onToggleSelect={toggleSelection}
-                />
+                  className="animate-fade-in-scale"
+                  style={{ animationDelay: `${150 + index * 50}ms` }}
+                >
+                  <GenerationCard
+                    generation={gen}
+                    onClick={() => {
+                      if (selectionMode) {
+                        toggleSelection(gen.id)
+                      } else {
+                        setSelectedGeneration(gen)
+                      }
+                    }}
+                    selectionMode={selectionMode}
+                    isSelected={selectedIds.has(gen.id)}
+                    onToggleSelect={toggleSelection}
+                  />
+                </div>
               ))}
             </div>
 
@@ -352,7 +357,7 @@ export default function GalleryPage() {
                   variant="outline"
                   onClick={loadMore}
                   disabled={isLoading}
-                  className="bg-black/70 border-white/20 text-gray-300 hover:bg-black/90 hover:border-white/40 rounded-lg"
+                  className="bg-black/70 border-white/20 text-gray-300 hover:bg-[var(--teal-900)]/30 hover:text-[var(--teal-300)] hover:border-[var(--teal-700)] rounded-lg transition-all duration-300"
                 >
                   {isLoading ? (
                     <>
@@ -368,9 +373,11 @@ export default function GalleryPage() {
           </>
         )}
 
-        {/* Footer */}
-        <div className="mt-8 pt-6 border-t border-white/10 text-center text-sm text-gray-500">
-          Powered by EdgeAI Media
+        {/* Footer with subtle branding */}
+        <div className="mt-12 pt-6 border-t border-white/5 text-center animate-fade-in-up delay-500">
+          <p className="text-sm text-gray-500 font-medium">
+            Powered by <span className="text-[var(--teal-500)]">EdgeAI Media</span>
+          </p>
         </div>
       </div>
 

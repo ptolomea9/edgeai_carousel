@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Changed to all black theme */
+  /* Cinematic AI Studio theme - deep black with vibrant teal accent */
   --background: #000000;
   --foreground: #ffffff;
   --card: #000000;
@@ -16,23 +16,38 @@
   --secondary: #111111;
   --secondary-foreground: #ffffff;
   --muted: #0a0a0a;
-  --muted-foreground: #999999;
+  --muted-foreground: #a0a0a0;
   --accent: #1a1a1a;
   --accent-foreground: #ffffff;
-  --destructive: #ffffff;
-  --destructive-foreground: #000000;
-  --border: #333333;
+  --destructive: #ff4444;
+  --destructive-foreground: #ffffff;
+  --border: #2a2a2a;
   --input: #000000;
   --ring: #ffffff;
-  /* Removed chart-* variables - chart component deleted */
-  --radius: 0rem;
-  /* Removed sidebar-* variables - sidebar component deleted */
-  --font-inter: "Inter", sans-serif;
-  --font-jetbrains-mono: "JetBrains Mono", monospace;
+
+  /* Vibrant teal accent system - the signature color */
+  --teal-50: #e6fffc;
+  --teal-100: #b3fff5;
+  --teal-200: #80ffee;
+  --teal-300: #4dfde7;
+  --teal-400: #1af5dc;
+  --teal-500: #00ddc7;
+  --teal-600: #00b3a1;
+  --teal-700: #008a7c;
+  --teal-800: #006157;
+  --teal-900: #005B5B;
+  --teal-glow: rgba(0, 221, 199, 0.4);
+
+  --radius: 0.5rem;
+
+  /* New typography system */
+  --font-display: var(--font-syne), "Syne", system-ui, sans-serif;
+  --font-body: var(--font-outfit), "Outfit", system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", monospace;
 }
 
 .dark {
-  /* Dark mode now same as light mode since everything is black */
+  /* Dark mode inherits the same cinematic theme */
   --background: #000000;
   --foreground: #ffffff;
   --card: #000000;
@@ -44,24 +59,36 @@
   --secondary: #111111;
   --secondary-foreground: #ffffff;
   --muted: #0a0a0a;
-  --muted-foreground: #999999;
+  --muted-foreground: #a0a0a0;
   --accent: #1a1a1a;
   --accent-foreground: #ffffff;
-  --destructive: #ffffff;
-  --destructive-foreground: #000000;
-  --border: #333333;
+  --destructive: #ff4444;
+  --destructive-foreground: #ffffff;
+  --border: #2a2a2a;
   --input: #000000;
   --ring: #ffffff;
-  /* Removed chart-* variables - chart component deleted */
-  /* Removed sidebar-* variables - sidebar component deleted */
-  --font-inter: "Inter", sans-serif;
-  --font-jetbrains-mono: "JetBrains Mono", monospace;
+
+  /* Teal accent system */
+  --teal-50: #e6fffc;
+  --teal-100: #b3fff5;
+  --teal-200: #80ffee;
+  --teal-300: #4dfde7;
+  --teal-400: #1af5dc;
+  --teal-500: #00ddc7;
+  --teal-600: #00b3a1;
+  --teal-700: #008a7c;
+  --teal-800: #006157;
+  --teal-900: #005B5B;
+  --teal-glow: rgba(0, 221, 199, 0.4);
 }
 
 @theme inline {
-  /* Updated font variables to use new Inter and JetBrains Mono fonts */
-  --font-sans: var(--font-inter);
+  /* Typography system - Syne for display, Outfit for body */
+  --font-sans: var(--font-body);
+  --font-display: var(--font-syne), "Syne", system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono);
+
+  /* Colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -81,12 +108,24 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  /* Removed chart color mappings - chart component deleted */
+
+  /* Teal accent colors */
+  --color-teal-50: var(--teal-50);
+  --color-teal-100: var(--teal-100);
+  --color-teal-200: var(--teal-200);
+  --color-teal-300: var(--teal-300);
+  --color-teal-400: var(--teal-400);
+  --color-teal-500: var(--teal-500);
+  --color-teal-600: var(--teal-600);
+  --color-teal-700: var(--teal-700);
+  --color-teal-800: var(--teal-800);
+  --color-teal-900: var(--teal-900);
+
+  /* Border radius */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  /* Removed sidebar color mappings - sidebar component deleted */
 }
 
 @layer base {
@@ -139,10 +178,193 @@
     min-height: 100vh;
     position: relative;
   }
-  
+
   .gpu-accelerate {
     transform: translateZ(0);
     backface-visibility: hidden;
     perspective: 1000px;
+  }
+
+  /* Display font utility */
+  .font-display {
+    font-family: var(--font-syne), "Syne", system-ui, sans-serif;
+  }
+
+  /* Teal glow effects */
+  .glow-teal {
+    box-shadow: 0 0 20px var(--teal-glow), 0 0 40px rgba(0, 221, 199, 0.2);
+  }
+
+  .glow-teal-sm {
+    box-shadow: 0 0 10px var(--teal-glow);
+  }
+
+  .glow-teal-lg {
+    box-shadow: 0 0 30px var(--teal-glow), 0 0 60px rgba(0, 221, 199, 0.3);
+  }
+
+  /* Text glow */
+  .text-glow-teal {
+    text-shadow: 0 0 10px var(--teal-glow), 0 0 20px rgba(0, 221, 199, 0.3);
+  }
+
+  /* Border glow */
+  .border-glow-teal {
+    border-color: var(--teal-500);
+    box-shadow: 0 0 15px var(--teal-glow), inset 0 0 15px rgba(0, 221, 199, 0.1);
+  }
+}
+
+/* Keyframe animations for entrance effects */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px var(--teal-glow), 0 0 30px rgba(0, 221, 199, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 25px var(--teal-glow), 0 0 50px rgba(0, 221, 199, 0.4);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Animation utility classes */
+@layer utilities {
+  .animate-fade-in-up {
+    animation: fade-in-up 0.5s ease-out forwards;
+  }
+
+  .animate-fade-in-scale {
+    animation: fade-in-scale 0.4s ease-out forwards;
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.5s ease-out forwards;
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(0, 221, 199, 0.1) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  /* Staggered animation delays for orchestrated reveals */
+  .delay-100 { animation-delay: 100ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
+  .delay-600 { animation-delay: 600ms; }
+  .delay-700 { animation-delay: 700ms; }
+
+  /* Initially hidden for animations */
+  .animate-initial {
+    opacity: 0;
+  }
+
+  /* Card hover effects */
+  .card-hover {
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-2px);
+    border-color: var(--teal-700);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px var(--teal-glow);
+  }
+
+  /* Gradient borders */
+  .gradient-border {
+    position: relative;
+    background: var(--background);
+  }
+
+  .gradient-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    background: linear-gradient(135deg, var(--teal-500), var(--teal-900), transparent);
+    border-radius: inherit;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    pointer-events: none;
+  }
+
+  /* Noise texture overlay */
+  .noise-overlay {
+    position: relative;
+  }
+
+  .noise-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    border-radius: inherit;
   }
 }

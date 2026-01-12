@@ -14,7 +14,7 @@ export interface CarouselConfig {
   slides: SlideContent[]
   branding?: {
     text: string
-    position: 'top' | 'bottom' | 'watermark'
+    position?: 'watermark'  // Always bottom-right watermark, kept for API compatibility
   }
   outputType: OutputType
   musicTrackId?: string

@@ -29,9 +29,12 @@ const DEFAULT_SLIDE_COUNT = 6
 
 const MemoizedDithering = memo(Dithering)
 
-// Email validation helper
+// Email validation helper - stricter to catch typos like "gmail..com"
 const isValidEmail = (email: string): boolean => {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  // Basic format check + no consecutive dots + valid TLD length
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
+         !email.includes('..') &&
+         email.split('.').pop()!.length >= 2
 }
 
 function generateSlideContents(count: number): SlideContent[] {
@@ -67,9 +70,6 @@ export function CarouselCreator() {
   // Branding state
   const [includeBranding, setIncludeBranding] = useState(true)
   const [brandingText, setBrandingText] = useState('RealTPO.com')
-  const [brandingPosition, setBrandingPosition] = useState<
-    'top' | 'bottom' | 'watermark'
-  >('watermark')
 
   // Output state
   const [outputType, setOutputType] = useState<OutputType>('both')
@@ -208,7 +208,7 @@ export function CarouselCreator() {
       branding: includeBranding
         ? {
             text: brandingText,
-            position: brandingPosition,
+            position: 'watermark',
           }
         : undefined,
       outputType,
@@ -223,7 +223,6 @@ export function CarouselCreator() {
       slides,
       includeBranding,
       brandingText,
-      brandingPosition,
       outputType,
       selectedMusicTrackId,
       recipientEmail,
@@ -353,22 +352,22 @@ export function CarouselCreator() {
 
       {/* Main content */}
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        {/* Header with entrance animation */}
+        <div className="mb-8 flex items-center justify-between animate-fade-in-up">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-glow-teal">
               EdgeAI Carousel Creator
             </h1>
-            <p className="text-gray-400 mt-1">
+            <p className="text-gray-400 mt-2 text-sm md:text-base">
               Generate character-consistent carousel ads with AI
             </p>
           </div>
           <Link
             href="/gallery"
-            className="flex items-center gap-2 px-4 py-2 bg-black/70 border border-white/20 rounded-lg text-gray-300 hover:bg-black/90 hover:text-white hover:border-white/40 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 bg-black/70 border border-white/20 rounded-lg text-gray-300 hover:bg-[var(--teal-900)]/30 hover:text-[var(--teal-300)] hover:border-[var(--teal-700)] transition-all duration-300 card-hover"
           >
             <Images className="size-4" />
-            Gallery
+            <span className="font-medium">Gallery</span>
           </Link>
         </div>
 
@@ -376,8 +375,8 @@ export function CarouselCreator() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column - Configuration */}
           <div className="space-y-4">
-            {/* Hero Image Upload */}
-            <section className="p-5 bg-black/70 border border-white/10 rounded-lg backdrop-blur-sm">
+            {/* Hero Image Upload - Staggered entrance */}
+            <section className="p-5 bg-black/70 border border-white/10 rounded-xl backdrop-blur-sm card-hover noise-overlay animate-fade-in-up delay-100">
               <HeroImageUpload
                 onImageSelect={handleHeroImageSelect}
                 onImageClear={handleHeroImageRemove}
@@ -399,25 +398,25 @@ export function CarouselCreator() {
               />
             )}
 
-            {/* Tabs for Configuration */}
-            <div className="bg-black/70 border border-white/10 rounded-lg backdrop-blur-sm p-4">
+            {/* Tabs for Configuration - Staggered entrance */}
+            <div className="bg-black/70 border border-white/10 rounded-xl backdrop-blur-sm p-4 card-hover noise-overlay animate-fade-in-up delay-200">
               <Tabs defaultValue="style" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 bg-black/50 border border-white/10 rounded-lg p-1">
+                <TabsList className="grid w-full grid-cols-3 bg-black/50 border border-[var(--teal-900)]/30 rounded-lg p-1">
                   <TabsTrigger
                     value="style"
-                    className="rounded-md data-[state=active]:bg-white data-[state=active]:text-black transition-all"
+                    className="rounded-md font-medium data-[state=active]:bg-[var(--teal-500)] data-[state=active]:text-black data-[state=active]:glow-teal-sm transition-all duration-300"
                   >
                     Style
                   </TabsTrigger>
                   <TabsTrigger
                     value="content"
-                    className="rounded-md data-[state=active]:bg-white data-[state=active]:text-black transition-all"
+                    className="rounded-md font-medium data-[state=active]:bg-[var(--teal-500)] data-[state=active]:text-black data-[state=active]:glow-teal-sm transition-all duration-300"
                   >
                     Content
                   </TabsTrigger>
                   <TabsTrigger
                     value="output"
-                    className="rounded-md data-[state=active]:bg-white data-[state=active]:text-black transition-all"
+                    className="rounded-md font-medium data-[state=active]:bg-[var(--teal-500)] data-[state=active]:text-black data-[state=active]:glow-teal-sm transition-all duration-300"
                   >
                     Output
                   </TabsTrigger>
@@ -459,8 +458,6 @@ export function CarouselCreator() {
                     <BrandingOptions
                       brandingText={brandingText}
                       onBrandingTextChange={setBrandingText}
-                      brandingPosition={brandingPosition}
-                      onBrandingPositionChange={setBrandingPosition}
                       includeBranding={includeBranding}
                       onIncludeBrandingChange={setIncludeBranding}
                     />
@@ -513,14 +510,14 @@ export function CarouselCreator() {
               </Tabs>
             </div>
 
-            {/* Generate Button */}
+            {/* Generate Button - Prominent teal accent with glow */}
             <Button
               onClick={handleGenerate}
               disabled={!canGenerate}
               className={cn(
-                'w-full h-14 text-lg font-semibold rounded-lg transition-all',
+                'w-full h-14 text-lg font-display font-bold rounded-xl transition-all duration-300 animate-fade-in-up delay-300',
                 canGenerate
-                  ? 'bg-white text-black hover:bg-gray-200 shadow-lg shadow-white/10'
+                  ? 'bg-gradient-to-r from-[var(--teal-500)] to-[var(--teal-600)] text-black hover:from-[var(--teal-400)] hover:to-[var(--teal-500)] glow-teal hover:glow-teal-lg'
                   : 'bg-gray-800/50 text-gray-500 cursor-not-allowed'
               )}
             >
@@ -538,9 +535,9 @@ export function CarouselCreator() {
             </Button>
           </div>
 
-          {/* Right Column - Preview */}
-          <div className="lg:sticky lg:top-8 lg:self-start">
-            <section className="p-5 bg-black/70 border border-white/10 rounded-lg backdrop-blur-sm">
+          {/* Right Column - Preview with gradient border accent */}
+          <div className="lg:sticky lg:top-8 lg:self-start animate-slide-in-right delay-200">
+            <section className="p-5 bg-black/70 border border-white/10 rounded-xl backdrop-blur-sm gradient-border noise-overlay">
               <CarouselPreview
                 status={generationStatus}
                 className="min-h-[500px]"
@@ -549,9 +546,11 @@ export function CarouselCreator() {
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="mt-8 pt-6 border-t border-white/10 text-center text-sm text-gray-500">
-          Powered by EdgeAI Media
+        {/* Footer with subtle branding */}
+        <div className="mt-12 pt-6 border-t border-white/5 text-center animate-fade-in-up delay-500">
+          <p className="text-sm text-gray-500 font-medium">
+            Powered by <span className="text-[var(--teal-500)]">EdgeAI Media</span>
+          </p>
         </div>
       </div>
     </div>
