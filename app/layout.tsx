@@ -4,6 +4,7 @@ import { Syne, Outfit, JetBrains_Mono } from "next/font/google"
 import { Suspense } from "react"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { Toaster } from "@/components/toaster"
+import { AuthProvider } from "@/components/auth/auth-provider"
 import "./globals.css"
 
 // Syne: Bold geometric display font for headers — techy and memorable
@@ -67,10 +68,12 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className="font-sans antialiased" style={{ backgroundColor: "#000000" }}>
-        <ErrorBoundary>
-          <Suspense fallback={null}>{children}</Suspense>
-        </ErrorBoundary>
-        <Toaster />
+        <AuthProvider>
+          <ErrorBoundary>
+            <Suspense fallback={null}>{children}</Suspense>
+          </ErrorBoundary>
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   )

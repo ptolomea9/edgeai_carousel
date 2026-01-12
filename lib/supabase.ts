@@ -83,6 +83,7 @@ export interface Generation {
   status_details?: StatusDetails | null
   video_execution?: VideoExecutionDetails | null
   slides_config?: { headline: string; bodyText: string }[] | null
+  user_id?: string | null
 }
 
 export interface Slide {
@@ -251,6 +252,7 @@ export async function createGeneration(data: {
   art_style: string
   slide_count: number
   status?: 'generating' | 'complete' | 'error'
+  user_id?: string
 }): Promise<Generation | null> {
   if (!isConfigured) {
     console.warn('Supabase not configured, skipping generation record creation')
@@ -268,6 +270,7 @@ export async function createGeneration(data: {
         art_style: data.art_style,
         slide_count: data.slide_count,
         status: data.status || 'generating',
+        user_id: data.user_id || null,
       })
       .select()
       .single()

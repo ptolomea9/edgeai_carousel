@@ -27,6 +27,7 @@
     "@radix-ui/react-tabs": "latest",
     "@radix-ui/react-toast": "latest",
     "@radix-ui/react-tooltip": "latest",
+    "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.45.0",
     "@vercel/analytics": "latest",
     "ai": "latest",

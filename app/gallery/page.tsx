@@ -9,6 +9,7 @@ import { GenerationDetail } from '@/components/gallery/generation-detail'
 import { DeleteConfirmation } from '@/components/gallery/delete-confirmation'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { UserMenu } from '@/components/auth/user-menu'
 import type { GenerationWithSlides } from '@/lib/supabase'
 
 type FilterType = 'all' | 'static' | 'video'
@@ -318,6 +319,7 @@ export default function GalleryPage() {
                   <Plus className="size-4" />
                   Create New
                 </Link>
+                <UserMenu />
               </>
             )}
           </div>

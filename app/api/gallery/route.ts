@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getGenerations, getGenerationById } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
+  // Get authenticated user
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    )
+  }
+
   try {
+    // RLS will automatically filter to user's generations only
     const searchParams = request.nextUrl.searchParams
     const id = searchParams.get('id')
     const limit = parseInt(searchParams.get('limit') || '20', 10)

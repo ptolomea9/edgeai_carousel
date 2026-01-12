@@ -11,8 +11,22 @@ import {
   updateGeneration,
   setSlidesConfig,
 } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
+  // Get authenticated user
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    )
+  }
+
   const generationId = generateId()
 
   try {
@@ -63,6 +77,7 @@ export async function POST(request: NextRequest) {
         art_style: payload.artStyle,
         slide_count: payload.slideCount,
         status: 'generating',
+        user_id: user.id,
       })
       console.log(`Created generation record: ${generationId}`)
 

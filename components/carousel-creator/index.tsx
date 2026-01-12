@@ -17,6 +17,7 @@ import { BrandingOptions } from './branding-options'
 import { OutputOptions } from './output-options'
 import { MusicLibrary } from './music-library'
 import { CarouselPreview } from './carousel-preview'
+import { UserMenu } from '@/components/auth/user-menu'
 import type {
   CarouselConfig,
   SlideContent,
@@ -421,13 +422,16 @@ export function CarouselCreator() {
               Generate character-consistent carousel ads with AI
             </p>
           </div>
-          <Link
-            href="/gallery"
-            className="flex items-center gap-2 px-4 py-2.5 bg-black/70 border border-white/20 rounded-lg text-gray-300 hover:bg-[var(--teal-900)]/30 hover:text-[var(--teal-300)] hover:border-[var(--teal-700)] transition-all duration-300 card-hover"
-          >
-            <Images className="size-4" />
-            <span className="font-medium">Gallery</span>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/gallery"
+              className="flex items-center gap-2 px-4 py-2.5 bg-black/70 border border-white/20 rounded-lg text-gray-300 hover:bg-[var(--teal-900)]/30 hover:text-[var(--teal-300)] hover:border-[var(--teal-700)] transition-all duration-300 card-hover"
+            >
+              <Images className="size-4" />
+              <span className="font-medium">Gallery</span>
+            </Link>
+            <UserMenu />
+          </div>
         </div>
 
         {/* Main Layout */}
