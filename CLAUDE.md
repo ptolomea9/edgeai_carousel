@@ -99,7 +99,7 @@ Two main workflows handle generation:
 Each art style has custom text styling applied in the video:
 - **Headline**: Bold, at top center, art-style-specific font/color/shadow
 - **Body**: Normal weight, at vertical center, matching style
-- **Branding**: At bottom center, 70% of headline size, same font/color as headline
+- **Branding**: At bottom-right corner (watermark), 70% of headline size, same font/color as headline
 
 Art styles: synthwave, anime, 3d-pixar, watercolor, minimalist, comic, photorealistic, custom
 
@@ -287,8 +287,10 @@ Restored working "Build json2video Payload" node in video workflow after it was 
 
 **Root Cause**: Node was "simplified" and lost critical fields:
 - Missing `duration: videoDuration` on all video elements
-- Changed `type: 'html'` to broken `type: 'text'` for text overlays
+- Changed `type: 'html'` to `type: 'text'` WITHOUT proper animation settings (broken)
 - Changed `resolution: 'instagram-story'` to custom dimensions
+
+**Note**: `type: 'text'` IS supported but requires `style` and `settings` parameters for animation. Plain `type: 'text'` without these fails.
 
 **Fix**: Restored working code from workflow version 93. Key elements:
 ```javascript
@@ -390,11 +392,56 @@ Static workflow now generates TWO images per slide for different purposes:
 - Longer generation time (more images to generate)
 - Simpler workflow architecture (no json2video for static images)
 
+### Kinetic Typography for Headlines (IMPLEMENTED - January 11, 2026)
+Added dynamic text animations to video headlines using json2video's native text element:
+
+**Change**: Headlines now use `type: 'text'` with animation instead of static `type: 'html'`
+
+**Animation Mapping by Art Style**:
+| Art Style | Animation ID | Effect |
+|-----------|-------------|--------|
+| synthwave | `005` | Jumping (energetic neon) |
+| anime | `003` | Word-by-word (dramatic) |
+| 3d-pixar | `002` | Fade in (smooth) |
+| watercolor | `006` | Revealing (artistic) |
+| minimalist | `002` | Fade in (clean) |
+| comic | `005` | Jumping (dynamic) |
+| photorealistic | `002` | Fade in (subtle) |
+| custom | `003` | Word-by-word (default) |
+
+**Implementation** (Build json2video Payload node):
+```javascript
+// Headline with kinetic animation
+elements.push({
+  type: 'text',
+  style: animationStyle,  // e.g., '005' for jumping
+  text: cleanHeadline,
+  duration: videoDuration,
+  x: 0, y: 120, width: 1080, height: 0,
+  settings: {
+    'color': style.headlineColor,
+    'font-size': `${style.headlineSize}px`,
+    'font-family': style.headlineFont,
+    'font-weight': 'bold',
+    'text-align': 'center',
+    'vertical-align': 'top',
+    'shadow': shadowLevel,  // 0-3
+    'background-color': style.bgColor
+  }
+});
+```
+
+**Hybrid Approach**:
+- **Headlines**: `type: 'text'` with animation (most impactful)
+- **Body text**: `type: 'html'` (supports bullets/formatting, no animation)
+- **Branding**: `type: 'html'` (positioned in corner, no animation needed)
+
+**Rollback**: Tag `pre-text-animations` contains the previous version without kinetic typography.
+
 ## Video Workflow Architecture (Current)
 
 **Workflow ID**: `0MpzxUS4blJI7vgm`
-**Version ID**: `7c1a57d5-5f56-4a8d-8e7e-54bc188443cb`
-**Last Updated**: January 10, 2026
+**Last Updated**: January 11, 2026
 **Node Count**: 38
 
 ### Node Flow
