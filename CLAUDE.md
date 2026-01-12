@@ -273,7 +273,7 @@ payload.elements = [{
 - `loop: -1` loops the 30s track as many times as needed
 - `volume: 0.4` keeps music from overpowering text/voiceover
 
-**Local Script**: `scripts/updated-json2video-code.js` contains the v7.1 code with soundtrack support.
+**Local Script**: `scripts/json2video-payload-v8.1.js` contains the current code with soundtrack support.
 
 **Wait Times**:
 | Node | Duration |
@@ -509,7 +509,7 @@ elements.push({
 - **Body text**: `type: 'html'` (supports bullets/formatting, static)
 - **Branding**: `type: 'html'` (positioned bottom-right, static watermark)
 
-**Local Script**: `scripts/updated-json2video-code.js` contains the v7.0 code with animations.
+**Local Script**: `scripts/json2video-payload-v8.1.js` contains the current code with animations.
 
 ### Static Workflow Node Reference Fix (FIXED - January 11, 2026)
 Fixed stale node reference in Static Workflow "Update App Status" node.
@@ -686,7 +686,7 @@ CRITICAL CONSISTENCY REQUIREMENTS:
 heroAdherencePrompt → characterConsistencyPrompt → stylePrompt → Scene description → characterNegativePrompt → styleReinforcement
 ```
 
-**Local Script**: `scripts/updated-static-code.js` contains the v2.0 prompt code.
+**Local Script**: `scripts/static-prompts-v2.0.js` contains the prompt code.
 
 ### Minimum Font Sizes for Text-Baked Images (IMPLEMENTED - January 11, 2026)
 Added explicit minimum font size requirements to text-baked image prompts to match video overlay sizes:
@@ -900,3 +900,204 @@ return $input.all().map((inputItem, index) => {
 | Extract Retry 3 URL | Used `$('IF Needs Retry 3').item.json` |
 
 **Key Insight**: In n8n Code nodes, `$('NodeName').item.json` always returns the **first item** from that node, not the corresponding item for each input. When processing multiple items in parallel, you must use `$('NodeName').all()[index]` to get the matching item by index.
+
+### Music Passthrough and URL Resolution (IMPLEMENTED - January 12, 2026)
+Added background music support from static workflow to video workflow.
+
+**Implementation**:
+1. **Frontend**: User selects music track in `music-library.tsx` component
+2. **API**: `POST /api/generate-carousel` receives `musicTrackId` in request body
+3. **Static Workflow**: Passes `musicTrackId` through to video workflow trigger
+4. **Video Workflow**: Resolves track ID to URL, adds to json2video payload
+
+**Music Tracks** (Pre-generated with ElevenLabs):
+Each art style has 2 varied tracks stored in Supabase Storage `carousel-music` bucket:
+| Art Style | Track 1 | Track 2 |
+|-----------|---------|---------|
+| synthwave | synthwave-1.mp3 | synthwave-2.mp3 |
+| anime | anime-1.mp3 | anime-2.mp3 |
+| 3d-pixar | pixar-1.mp3 | pixar-2.mp3 |
+| watercolor | watercolor-1.mp3 | watercolor-2.mp3 |
+| minimalist | minimalist-1.mp3 | minimalist-2.mp3 |
+| comic | comic-1.mp3 | comic-2.mp3 |
+| photorealistic | photorealistic-1.mp3 | photorealistic-2.mp3 |
+| custom | custom-1.mp3 | custom-2.mp3 |
+
+**json2video Audio Element**:
+```javascript
+// Added at movie level (not scene level) for cross-scene playback
+payload.elements = [{
+  type: 'audio',
+  src: musicUrl,
+  duration: -2,    // Match movie length
+  loop: -1,        // Infinite loop (30s track loops for 50s video)
+  volume: 0.4,     // 40% volume (background level)
+  'fade-out': 2    // 2s fade at end
+}];
+```
+
+### Trigger Video Workflow Node Fix (IMPLEMENTED - January 12, 2026)
+Fixed static workflow's "Trigger Video Workflow" HTTP Request node that was failing to start video generation.
+
+**Problem**: Video workflow never started after static generation completed. n8n execution logs showed JSON parsing errors.
+
+**Root Causes**:
+1. HTTP method was `GET` instead of `POST`
+2. Slides path was `{{ $json.slides }}` (undefined) instead of `{{ $json.results.slides }}`
+3. Missing `musicTrackId` in JSON body
+
+**Fix** (n8n Static Workflow, "Trigger Video Workflow" node):
+```javascript
+// Before (broken):
+{
+  method: "GET",  // Wrong method
+  jsonBody: {
+    slides: "={{ $json.slides }}"  // Wrong path - slides is nested in results
+  }
+}
+
+// After (working):
+{
+  method: "POST",
+  sendBody: true,
+  specifyBody: "json",
+  jsonBody: {
+    generationId: "={{ $json.results.generationId }}",
+    slides: "={{ $json.results.slides }}",
+    artStyle: "={{ $json.results.artStyle }}",
+    email: "={{ $json.results.email }}",
+    musicTrackId: "={{ $json.results.musicTrackId }}"
+  }
+}
+```
+
+**Key Insight**: Static workflow's "Collect All Results" node outputs `{ results: {...} }`, so all fields must be accessed via `$json.results.*` not `$json.*`.
+
+### Client-Safe Music Tracks Separation (IMPLEMENTED - January 12, 2026)
+Fixed client-side import error that prevented carousel generation.
+
+**Problem**: Frontend showed "immediate generation failed" - generation never triggered n8n.
+
+**Root Cause**: `components/carousel-creator/index.tsx` (a 'use client' component) imported from `lib/n8n.ts`, which imports server-side modules:
+```typescript
+// lib/n8n.ts imports server-only modules:
+import { createClient } from '@/lib/supabase/server'  // Server-only
+// Uses process.env.N8N_API_KEY, process.env.N8N_WEBHOOK_URL
+```
+
+React Server Components can import server modules, but client components cannot. The music track constants were in `lib/n8n.ts`, causing the import chain.
+
+**Fix**: Created `lib/music-tracks.ts` with client-safe exports:
+```typescript
+// lib/music-tracks.ts - Client-safe, no server imports
+export type ArtStyleKey = 'synthwave' | 'anime' | '3d-pixar' | ...
+export interface MusicTrack { id: string; name: string; url: string; duration: number }
+
+export const MUSIC_TRACKS: MusicTrack[] = [...]
+export const MUSIC_BY_ART_STYLE: Record<ArtStyleKey, MusicTrack[]> = {...}
+```
+
+**Files Updated**:
+- `components/carousel-creator/index.tsx` - Import from `@/lib/music-tracks`
+- `components/carousel-creator/music-library.tsx` - Import from `@/lib/music-tracks`
+- `lib/n8n.ts` - Re-exports from `@/lib/music-tracks` for backward compatibility
+
+### SUPABASE_SERVICE_ROLE_KEY Requirement (DOCUMENTED - January 12, 2026)
+The service role key must be configured on Vercel for production deployments.
+
+**Symptom**: "immediate generation failed" in frontend, API returns 500 error.
+
+**Root Cause**: `uploadBase64Image()` in `lib/supabase.ts` requires `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS. Without it, the function returns `null`, which the generate-carousel API treats as a failure.
+
+**Fix**: Add to Vercel Environment Variables:
+```
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
+```
+
+**Why Service Role Key is Required**:
+- Supabase Storage requires authenticated uploads
+- RLS policies on `generations` table block anonymous inserts
+- Service role key bypasses RLS for server-side operations
+
+### User Data Isolation / Application-Level RLS (IMPLEMENTED - January 12, 2026)
+Fixed users being able to see all generations in gallery instead of only their own.
+
+**Problem**: Gallery showed ALL users' generations. No user isolation despite authentication.
+
+**Root Cause**: Database functions didn't filter by user:
+```typescript
+// getGenerations() - No user filtering
+const { data } = await client.from('generations').select('*')
+
+// deleteGeneration() - No ownership check
+await client.from('generations').delete().eq('id', generationId)
+```
+
+**Approach**: Application-level filtering (not database RLS policies) because:
+1. n8n callbacks use service role key (bypasses RLS anyway)
+2. Status polling needs to work for any valid generation ID
+3. Simpler to implement without database migration
+
+**Files Modified**:
+
+1. **`lib/supabase.ts`** - Added userId parameters:
+```typescript
+// getGenerations() - Filter by user
+export async function getGenerations(
+  limit = 20,
+  offset = 0,
+  filter: 'all' | 'static' | 'video' = 'all',
+  userId?: string  // NEW: Filter by user for RLS
+): Promise<{ data: GenerationWithSlides[]; count: number }> {
+  // ...
+  if (userId) {
+    countQuery = countQuery.eq('user_id', userId)
+    query = query.eq('user_id', userId)
+  }
+  // ...
+}
+
+// deleteGeneration() - Verify ownership
+export async function deleteGeneration(
+  generationId: string,
+  userId?: string  // NEW: Verify ownership before deleting
+): Promise<{ success: boolean; error?: string }> {
+  // ...
+  if (userId && generation.user_id !== userId) {
+    console.warn(`User ${userId} attempted to delete generation ${generationId} owned by ${generation.user_id}`)
+    return { success: false, error: 'Not authorized to delete this generation' }
+  }
+  // ...
+}
+
+// deleteGenerations() - Bulk delete with ownership check
+export async function deleteGenerations(
+  generationIds: string[],
+  userId?: string  // NEW: Verify ownership for each
+): Promise<{ deleted: string[]; errors: { id: string; error: string }[] }> {
+  // Calls deleteGeneration() for each, passing userId
+}
+```
+
+2. **`app/api/gallery/route.ts`** - Pass user.id to getGenerations:
+```typescript
+// Filter by authenticated user's ID for data isolation
+const { data, count } = await getGenerations(limit, offset, filter, user.id)
+```
+
+3. **`app/api/gallery/delete/route.ts`** - Pass user.id to deleteGenerations:
+```typescript
+// Delete the generations (only if owned by user)
+const result = await deleteGenerations(ids, user.id)
+```
+
+**What Still Works Without User Filtering**:
+- `GET /api/status/[id]` - Polling by generation ID (IDs are random/unpredictable)
+- n8n callbacks - Use service role key, bypass all checks
+- `getGenerationById()` - For status page (could add user check if needed)
+
+**Security Model**:
+- Gallery list: Only shows user's own generations
+- Delete: Only allows deleting user's own generations
+- Status polling: Works by knowing the generation ID (treated as a secret token)
+- n8n updates: Trusted server-to-server, uses service role key
