@@ -77,9 +77,9 @@ export function MusicLibrary({
       ? SAMPLE_TRACKS
       : SAMPLE_TRACKS.filter((t) => t.category === filter)
 
-  // Get the recommended track for current art style
-  const styleTrack = MUSIC_BY_ART_STYLE[artStyle as ArtStyleKey]
-  const hasStyleTrack = styleTrack && styleTrack.fullUrl
+  // Get the recommended tracks for current art style (now an array)
+  const styleTracks = MUSIC_BY_ART_STYLE[artStyle as ArtStyleKey] || []
+  const hasStyleTracks = styleTracks.length > 0 && styleTracks[0].fullUrl
 
   const togglePlay = (previewUrl: string, trackId: string) => {
     if (!previewUrl) return
@@ -214,45 +214,66 @@ export function MusicLibrary({
       {mode === 'style-match' && (
         <div className="space-y-2">
           <div className="p-3 bg-[var(--teal-900)]/20 border border-[var(--teal-700)]/30 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-3">
               <Sparkles className="size-4 text-[var(--teal-400)]" />
               <span className="text-sm font-medium text-[var(--teal-300)]">
                 Recommended for {styleName}
               </span>
             </div>
-            {hasStyleTrack ? (
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => togglePlay(styleTrack.fullUrl, styleTrack.id)}
-                  className="size-10 flex items-center justify-center bg-[var(--teal-500)] rounded-full hover:bg-[var(--teal-400)] transition-colors"
-                >
-                  {playingTrackId === styleTrack.id ? (
-                    <Pause className="size-5 text-black" />
-                  ) : (
-                    <Play className="size-5 text-black ml-0.5" />
-                  )}
-                </button>
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-white">{styleTrack.name}</div>
-                  <div className="text-xs text-gray-400">AI Instrumental • {styleTrack.duration}</div>
-                </div>
-                <button
-                  onClick={() => onSelectTrack(styleTrack.id)}
-                  className={cn(
-                    'px-3 py-1.5 text-xs font-medium rounded-lg transition-all',
-                    selectedTrackId === styleTrack.id
-                      ? 'bg-[var(--teal-500)] text-black'
-                      : 'bg-white/10 text-white hover:bg-white/20'
-                  )}
-                >
-                  {selectedTrackId === styleTrack.id ? (
-                    <span className="flex items-center gap-1">
-                      <Check className="size-3" /> Selected
-                    </span>
-                  ) : (
-                    'Use This'
-                  )}
-                </button>
+            {hasStyleTracks ? (
+              <div className="space-y-2">
+                {styleTracks.map((track, index) => (
+                  <div
+                    key={track.id}
+                    className={cn(
+                      'flex items-center gap-3 p-2 rounded-lg transition-all',
+                      selectedTrackId === track.id
+                        ? 'bg-[var(--teal-500)]/20 ring-1 ring-[var(--teal-500)]'
+                        : 'hover:bg-white/5'
+                    )}
+                  >
+                    <button
+                      onClick={() => togglePlay(track.fullUrl, track.id)}
+                      className={cn(
+                        'size-10 flex items-center justify-center rounded-full transition-colors',
+                        index === 0
+                          ? 'bg-[var(--teal-500)] hover:bg-[var(--teal-400)]'
+                          : 'bg-purple-500 hover:bg-purple-400'
+                      )}
+                    >
+                      {playingTrackId === track.id ? (
+                        <Pause className="size-5 text-black" />
+                      ) : (
+                        <Play className="size-5 text-black ml-0.5" />
+                      )}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-white truncate">{track.name}</div>
+                      <div className="text-xs text-gray-400">
+                        AI Instrumental • {track.duration}
+                        {index === 0 && <span className="ml-1.5 text-[var(--teal-400)]">• Energetic</span>}
+                        {index === 1 && <span className="ml-1.5 text-purple-400">• Relaxed</span>}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onSelectTrack(track.id)}
+                      className={cn(
+                        'px-3 py-1.5 text-xs font-medium rounded-lg transition-all shrink-0',
+                        selectedTrackId === track.id
+                          ? 'bg-[var(--teal-500)] text-black'
+                          : 'bg-white/10 text-white hover:bg-white/20'
+                      )}
+                    >
+                      {selectedTrackId === track.id ? (
+                        <span className="flex items-center gap-1">
+                          <Check className="size-3" /> Selected
+                        </span>
+                      ) : (
+                        'Use'
+                      )}
+                    </button>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="text-center py-4">
