@@ -29,42 +29,116 @@ export const MUSIC_TRACKS: MusicTrack[] = [
     id: 'upbeat-1',
     name: 'Energy Boost',
     genre: 'Upbeat',
-    duration: '2:30',
-    previewUrl: '/music/energy-boost-preview.mp3',
-    fullUrl: '/music/energy-boost.mp3',
+    duration: '4:34',
+    previewUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    fullUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
   },
   {
     id: 'corporate-1',
     name: 'Business Forward',
     genre: 'Corporate',
-    duration: '2:45',
-    previewUrl: '/music/business-forward-preview.mp3',
-    fullUrl: '/music/business-forward.mp3',
+    duration: '5:27',
+    previewUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+    fullUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
   },
   {
     id: 'chill-1',
     name: 'Smooth Vibes',
     genre: 'Chill',
-    duration: '3:00',
-    previewUrl: '/music/smooth-vibes-preview.mp3',
-    fullUrl: '/music/smooth-vibes.mp3',
+    duration: '4:05',
+    previewUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+    fullUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
   },
   {
     id: 'epic-1',
     name: 'Rise Up',
     genre: 'Epic',
-    duration: '2:15',
-    previewUrl: '/music/rise-up-preview.mp3',
-    fullUrl: '/music/rise-up.mp3',
+    duration: '5:45',
+    previewUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
+    fullUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
   },
 ]
+
+// Art style to recommended music mapping
+// These will be replaced with AI-generated tracks from ElevenLabs
+export type ArtStyleKey = 'synthwave' | 'anime' | '3d-pixar' | 'watercolor' | 'minimalist' | 'comic' | 'photorealistic' | 'custom'
+
+export const MUSIC_BY_ART_STYLE: Record<ArtStyleKey, MusicTrack> = {
+  synthwave: {
+    id: 'style-synthwave',
+    name: 'Neon Dreams',
+    genre: 'Synthwave',
+    duration: '0:30',
+    previewUrl: '', // Will be populated by pre-generation
+    fullUrl: '',
+  },
+  anime: {
+    id: 'style-anime',
+    name: 'Epic Journey',
+    genre: 'Anime',
+    duration: '0:30',
+    previewUrl: '',
+    fullUrl: '',
+  },
+  '3d-pixar': {
+    id: 'style-3d-pixar',
+    name: 'Whimsical Adventure',
+    genre: '3D Pixar',
+    duration: '0:30',
+    previewUrl: '',
+    fullUrl: '',
+  },
+  watercolor: {
+    id: 'style-watercolor',
+    name: 'Gentle Flow',
+    genre: 'Watercolor',
+    duration: '0:30',
+    previewUrl: '',
+    fullUrl: '',
+  },
+  minimalist: {
+    id: 'style-minimalist',
+    name: 'Clean Focus',
+    genre: 'Minimalist',
+    duration: '0:30',
+    previewUrl: '',
+    fullUrl: '',
+  },
+  comic: {
+    id: 'style-comic',
+    name: 'Hero Rising',
+    genre: 'Comic',
+    duration: '0:30',
+    previewUrl: '',
+    fullUrl: '',
+  },
+  photorealistic: {
+    id: 'style-photorealistic',
+    name: 'Cinematic Mood',
+    genre: 'Photorealistic',
+    duration: '0:30',
+    previewUrl: '',
+    fullUrl: '',
+  },
+  custom: {
+    id: 'style-custom',
+    name: 'Modern Vibes',
+    genre: 'Custom',
+    duration: '0:30',
+    previewUrl: '',
+    fullUrl: '',
+  },
+}
 
 // Get full music URL from track ID
 export function getMusicUrl(trackId: string | undefined): string | undefined {
   if (!trackId) return undefined
   const track = MUSIC_TRACKS.find((t) => t.id === trackId)
   if (!track) return undefined
-  // Return absolute URL for n8n to access
+  // If already an absolute URL, return as-is; otherwise prepend base URL
+  if (track.fullUrl.startsWith('http')) {
+    return track.fullUrl
+  }
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://edgeai-carousel.vercel.app'
   return `${baseUrl}${track.fullUrl}`
 }

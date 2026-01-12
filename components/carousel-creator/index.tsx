@@ -541,6 +541,7 @@ export function CarouselCreator() {
                       <MusicLibrary
                         selectedTrackId={selectedMusicTrackId}
                         onSelectTrack={setSelectedMusicTrackId}
+                        artStyle={artStyle}
                       />
                     </section>
                   )}
