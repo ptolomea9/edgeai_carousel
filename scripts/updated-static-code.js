@@ -19,63 +19,55 @@ const stylePrompts = {
 };
 
 // Text style mapping for text-baked images - MATCHES json2video overlay styling
-// v2.0: Added minimum font sizes to match video overlay sizes
+// v4.0: Restructured for compact prompts with explicit colors
 const textStylePrompts = {
   'synthwave': {
-    headline: 'Use ORBITRON-style futuristic blocky font for headline, glowing BRIGHT MAGENTA (#FF00FF) color, MINIMUM 72px font size, with strong neon glow effect (pink/magenta glow around text)',
-    body: 'Use ORBITRON-style futuristic font for body text, BRIGHT MAGENTA (#FF00FF) color, MINIMUM 69px font size, with subtle neon glow',
-    headlineMinSize: 72,
-    bodyMinSize: 69,
-    background: 'Text on semi-transparent black rounded rectangle background (65% opacity)'
+    font: 'ORBITRON futuristic blocky',
+    color: '#FF00FF magenta',
+    effects: 'neon glow',
+    bgColor: 'black'
   },
   'anime': {
-    headline: 'Use BANGERS-style bold comic display font for headline, CORAL RED (#FF6B6B) color, MINIMUM 68px font size, with black stroke/outline around letters',
-    body: 'Use BANGERS-style bold font for body text, CORAL RED (#FF6B6B) color, MINIMUM 65px font size, with black outline',
-    headlineMinSize: 68,
-    bodyMinSize: 65,
-    background: 'Text on semi-transparent black rounded rectangle background (65% opacity)'
+    font: 'BANGERS bold comic',
+    color: '#FF6B6B coral red',
+    effects: 'black outline',
+    bgColor: 'black'
   },
   '3d-pixar': {
-    headline: 'Use FREDOKA ONE-style friendly rounded bubble font for headline, GOLDEN YELLOW (#FFD93D) color, MINIMUM 64px font size, with soft drop shadow',
-    body: 'Use FREDOKA ONE-style rounded friendly font for body text, GOLDEN YELLOW (#FFD93D) color, MINIMUM 61px font size, with soft shadow',
-    headlineMinSize: 64,
-    bodyMinSize: 61,
-    background: 'Text on semi-transparent black rounded rectangle background (65% opacity)'
+    font: 'FREDOKA ONE rounded bubble',
+    color: '#FFD93D golden yellow',
+    effects: 'soft shadow',
+    bgColor: 'black'
   },
   'watercolor': {
-    headline: 'Use PACIFICO-style elegant cursive script font for headline, WARM BROWN (#5C4033) color, MINIMUM 60px font size, with subtle white glow/halo',
-    body: 'Use PACIFICO-style elegant script font for body text, WARM BROWN (#5C4033) color, MINIMUM 59px font size',
-    headlineMinSize: 60,
-    bodyMinSize: 59,
-    background: 'Text on semi-transparent white rounded rectangle background (65% opacity)'
+    font: 'PACIFICO elegant script',
+    color: '#5C4033 warm brown',
+    effects: 'white halo',
+    bgColor: 'white'
   },
   'minimalist': {
-    headline: 'Use MONTSERRAT-style clean modern sans-serif font for headline, NEAR BLACK (#1A1A1A) color, MINIMUM 56px font size, no effects',
-    body: 'Use MONTSERRAT-style clean sans-serif font for body text, NEAR BLACK (#1A1A1A) color, MINIMUM 53px font size, no effects',
-    headlineMinSize: 56,
-    bodyMinSize: 53,
-    background: 'Text on semi-transparent white rounded rectangle background (65% opacity)'
+    font: 'MONTSERRAT clean sans-serif',
+    color: '#1A1A1A near black',
+    effects: 'none',
+    bgColor: 'white'
   },
   'comic': {
-    headline: 'Use BANGERS-style bold comic display font for headline, BRIGHT YELLOW (#FFFF00) color, MINIMUM 72px font size, with thick black stroke/outline',
-    body: 'Use BANGERS-style bold comic font for body text, BRIGHT YELLOW (#FFFF00) color, MINIMUM 69px font size, with black outline',
-    headlineMinSize: 72,
-    bodyMinSize: 69,
-    background: 'Text on semi-transparent black rounded rectangle background (65% opacity)'
+    font: 'BANGERS bold comic',
+    color: '#FFFF00 bright yellow',
+    effects: 'thick black outline',
+    bgColor: 'black'
   },
   'photorealistic': {
-    headline: 'Use PLAYFAIR DISPLAY-style elegant serif font for headline, WHITE (#FFFFFF) color, MINIMUM 54px font size, with soft dark drop shadow',
-    body: 'Use PLAYFAIR DISPLAY-style elegant serif font for body text, WHITE (#FFFFFF) color, MINIMUM 53px font size, with subtle shadow',
-    headlineMinSize: 54,
-    bodyMinSize: 53,
-    background: 'Text on semi-transparent black rounded rectangle background (65% opacity)'
+    font: 'PLAYFAIR DISPLAY elegant serif',
+    color: '#FFFFFF white',
+    effects: 'dark shadow',
+    bgColor: 'black'
   },
   'custom': {
-    headline: 'Use ROBOTO-style clean modern sans-serif font for headline, WHITE (#FFFFFF) color, MINIMUM 60px font size, with subtle drop shadow',
-    body: 'Use ROBOTO-style clean sans-serif font for body text, WHITE (#FFFFFF) color, MINIMUM 59px font size',
-    headlineMinSize: 60,
-    bodyMinSize: 59,
-    background: 'Text on semi-transparent black rounded rectangle background (65% opacity)'
+    font: 'ROBOTO clean sans-serif',
+    color: '#FFFFFF white',
+    effects: 'subtle shadow',
+    bgColor: 'black'
   }
 };
 
@@ -179,32 +171,31 @@ Position: Bottom-right corner with slight padding from edges.
 Style: Subtle, semi-transparent watermark, should not distract from main content.`;
   }
 
-// v2.0: Added hero adherence, character consistency, and font size requirements
-const textPrompt = `${heroAdherencePrompt}${characterConsistencyPrompt}${stylePrompt}
+// v4.0: Enhanced text prompts with anatomical lock and explicit colors
+// Anatomical lock prevents extra appendages (wings, limbs, tails)
+const anatomicalLock = 'ANATOMICAL LOCK: Character MUST have EXACT same body parts as reference - NO extra wings, limbs, tails, or heads. NO duplicating or morphing body parts.';
+
+// Build compact branding instruction
+let brandingInstruction = '';
+if (webhookData.branding && webhookData.branding.text) {
+  const brandText = webhookData.branding.text.replace(/"/g, "'");
+  brandingInstruction = `\n- BRANDING (bottom-right): "${brandText}" - small watermark, same color`;
+}
+
+const textPrompt = `${stylePrompt}
 
 Scene: ${characterDescription} ${characterAction}.
 
-TEXT OVERLAY REQUIREMENTS (CRITICAL - MUST BE VISIBLE AND READABLE):
+${anatomicalLock}
 
-FONT SIZE REQUIREMENTS:
-- Headline: MINIMUM ${textStyle.headlineMinSize}px - must be clearly readable on mobile
-- Body text: MINIMUM ${textStyle.bodyMinSize}px - must be clearly readable on mobile
-- Text must be LARGE enough to read on 9:16 vertical format
-- Do NOT use small or decorative-only text sizes
+TEXT OVERLAYS (ALL SAME STYLE):
+- HEADLINE (top): "${safeHeadline}"
+  Font: ${textStyle.font}, Color: ${textStyle.color}, LARGE BOLD, ${textStyle.effects}
+- BODY (center): "${safeBodyText}"
+  Font: ${textStyle.font}, Color: ${textStyle.color}, BOLD, ${textStyle.effects}${brandingInstruction}
 
-HEADLINE at TOP of image: "${safeHeadline}"
-${textStyle.headline}
-Position: Centered horizontally, near top of image with padding
-
-BODY TEXT at CENTER of image: "${safeBodyText}"
-${textStyle.body}
-Position: Centered horizontally, in middle-lower area of image
-${brandingPrompt}
-
-${textStyle.background}
-
-Text must be LARGE, BOLD, and CLEARLY READABLE. Text should NOT obscure the main character.
-${characterNegativePrompt}${styleReinforcement}`;
+ALL text: Same font, same color (${textStyle.color}), semi-transparent ${textStyle.bgColor} background.
+${styleReinforcement}`;
 
   return {
     slideNumber: slide.slideNumber || index + 1,

@@ -246,7 +246,7 @@ for (const clip of data.videoClips) {
           font-family: ${style.bodyFont}, sans-serif;
           font-size: ${style.bodySize}px;
           color: ${style.bodyColor};
-          font-weight: normal;
+          font-weight: bold;
           background-color: ${style.bgColor};
           ${textShadowCss}
           text-align: center;
