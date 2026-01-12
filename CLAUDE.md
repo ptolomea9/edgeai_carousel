@@ -438,6 +438,22 @@ elements.push({
 
 **Local Script**: `scripts/updated-json2video-code.js` contains the v7.0 code with animations.
 
+### Static Workflow Node Reference Fix (FIXED - January 11, 2026)
+Fixed stale node reference in Static Workflow "Update App Status" node.
+
+**Problem**: Generation was showing "generation failed" in the app preview.
+
+**Root Cause**: The "Update App Status" node referenced a non-existent node name:
+```javascript
+// Broken (node was renamed):
+$('Collect Processed Images').first().json
+
+// Fixed:
+$('Collect All Results').first().json
+```
+
+**Key Lesson**: When renaming n8n nodes, search for all `$('NodeName')` references in other nodes to avoid broken expression references. n8n doesn't warn about invalid references until runtime.
+
 **Rollback**: If animation issues occur, version 116 contains the stable `type: 'html'` approach for all text elements.
 
 ### Video Text Readability Enhancement (IMPLEMENTED - January 11, 2026)
