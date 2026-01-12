@@ -157,18 +157,19 @@ export async function uploadBase64Image(
 }
 
 // Helper to upload image from URL to Supabase Storage
+// Uses server client to bypass storage RLS policies
 export async function uploadImageFromUrl(
   url: string,
   bucket: string,
   path: string
 ): Promise<string | null> {
-  if (!isConfigured) {
-    console.warn('Supabase not configured, skipping image upload')
+  if (!isServerConfigured) {
+    console.warn('Supabase server client not configured, skipping image upload')
     return null
   }
 
   try {
-    const client = getClient()
+    const client = getServerClient()
 
     // Fetch the image
     const response = await fetch(url)
@@ -203,18 +204,19 @@ export async function uploadImageFromUrl(
 }
 
 // Helper to upload video from URL to Supabase Storage
+// Uses server client to bypass storage RLS policies
 export async function uploadVideoFromUrl(
   url: string,
   bucket: string,
   path: string
 ): Promise<string | null> {
-  if (!isConfigured) {
-    console.warn('Supabase not configured, skipping video upload')
+  if (!isServerConfigured) {
+    console.warn('Supabase server client not configured, skipping video upload')
     return null
   }
 
   try {
-    const client = getClient()
+    const client = getServerClient()
 
     const response = await fetch(url)
     if (!response.ok) {
@@ -288,17 +290,18 @@ export async function createGeneration(data: {
 }
 
 // Update generation status and URLs
+// Uses server client to bypass RLS (n8n callbacks don't have user auth)
 export async function updateGeneration(
   generationId: string,
   updates: Partial<Pick<Generation, 'status' | 'video_url' | 'zip_url'>>
 ): Promise<boolean> {
-  if (!isConfigured) {
-    console.warn('Supabase not configured, skipping generation update')
+  if (!isServerConfigured) {
+    console.warn('Supabase server client not configured, skipping generation update')
     return false
   }
 
   try {
-    const client = getClient()
+    const client = getServerClient()
 
     const { error } = await client
       .from('generations')
@@ -318,6 +321,7 @@ export async function updateGeneration(
 }
 
 // Add slides to a generation (with retry logic for race conditions)
+// Uses server client to bypass RLS (n8n callbacks don't have user auth)
 export async function addSlides(
   generationId: string,
   slides: {
@@ -328,13 +332,13 @@ export async function addSlides(
     original_url?: string
   }[]
 ): Promise<boolean> {
-  if (!isConfigured) {
-    console.warn('Supabase not configured, skipping slides creation')
+  if (!isServerConfigured) {
+    console.warn('Supabase server client not configured, skipping slides creation')
     return false
   }
 
   try {
-    const client = getClient()
+    const client = getServerClient()
 
     // Retry logic to handle race condition where generation record might not exist yet
     let retries = 3
@@ -515,17 +519,18 @@ export async function getGenerationById(
 }
 
 // Store generation status in Supabase for serverless persistence
+// Uses server client to bypass RLS (n8n callbacks don't have user auth)
 export async function setStatusDetails(
   generationId: string,
   statusDetails: StatusDetails
 ): Promise<boolean> {
-  if (!isConfigured) {
-    console.warn('Supabase not configured, status not persisted')
+  if (!isServerConfigured) {
+    console.warn('Supabase server client not configured, status not persisted')
     return false
   }
 
   try {
-    const client = getClient()
+    const client = getServerClient()
 
     // Map status to the table's status column
     const tableStatus: 'generating' | 'complete' | 'error' =
@@ -556,15 +561,16 @@ export async function setStatusDetails(
 }
 
 // Get generation status from Supabase
+// Uses server client to bypass RLS (status polling doesn't have user auth context)
 export async function getStatusDetails(
   generationId: string
 ): Promise<StatusDetails | null> {
-  if (!isConfigured) {
+  if (!isServerConfigured) {
     return null
   }
 
   try {
-    const client = getClient()
+    const client = getServerClient()
 
     const { data, error } = await client
       .from('generations')
@@ -584,16 +590,17 @@ export async function getStatusDetails(
 }
 
 // Store video execution info in Supabase
+// Uses server client to bypass RLS (n8n callbacks don't have user auth)
 export async function setVideoExecution(
   generationId: string,
   videoExecution: VideoExecutionDetails
 ): Promise<boolean> {
-  if (!isConfigured) {
+  if (!isServerConfigured) {
     return false
   }
 
   try {
-    const client = getClient()
+    const client = getServerClient()
 
     const { error } = await client
       .from('generations')
@@ -613,15 +620,16 @@ export async function setVideoExecution(
 }
 
 // Get video execution info from Supabase
+// Uses server client to bypass RLS (status polling doesn't have user auth context)
 export async function getVideoExecution(
   generationId: string
 ): Promise<VideoExecutionDetails | null> {
-  if (!isConfigured) {
+  if (!isServerConfigured) {
     return null
   }
 
   try {
-    const client = getClient()
+    const client = getServerClient()
 
     const { data, error } = await client
       .from('generations')
@@ -641,16 +649,17 @@ export async function getVideoExecution(
 }
 
 // Store original slides config for later gallery display
+// Uses server client to bypass RLS
 export async function setSlidesConfig(
   generationId: string,
   slides: { headline: string; bodyText: string }[]
 ): Promise<boolean> {
-  if (!isConfigured) {
+  if (!isServerConfigured) {
     return false
   }
 
   try {
-    const client = getClient()
+    const client = getServerClient()
 
     const { error } = await client
       .from('generations')
@@ -670,15 +679,16 @@ export async function setSlidesConfig(
 }
 
 // Get original slides config
+// Uses server client to bypass RLS
 export async function getSlidesConfig(
   generationId: string
 ): Promise<{ headline: string; bodyText: string }[] | null> {
-  if (!isConfigured) {
+  if (!isServerConfigured) {
     return null
   }
 
   try {
-    const client = getClient()
+    const client = getServerClient()
 
     const { data, error } = await client
       .from('generations')

@@ -34,6 +34,14 @@ export async function GET(
     // Check if there's a pending video execution
     const videoInfo = await getVideoExecutionInfo(generationId)
 
+    // Debug logging for status refresh issues
+    console.log(`GET /api/status/${generationId}:`, {
+      hasLocalStatus: !!localStatus,
+      statusValue: localStatus?.status,
+      hasSlides: !!localStatus?.results?.slides?.length,
+      videoPending: videoInfo?.pending
+    })
+
     if (videoInfo?.pending) {
       // Poll n8n for video workflow status
       const videoResult = await pollVideoWorkflowStatus(generationId)
@@ -71,13 +79,18 @@ export async function GET(
         videoResult.status === 'pending'
       ) {
         // Video still generating - return animating status
-        if (localStatus) {
-          return NextResponse.json({
-            ...localStatus,
-            status: 'animating',
-            message: videoResult.message || 'Generating video...',
-          })
+        // FIX: Handle case where localStatus is null (race condition where Supabase hasn't been updated yet)
+        const statusToReturn = localStatus || {
+          status: 'generating',
+          progress: 20,
+          message: 'Starting generation...',
         }
+
+        return NextResponse.json({
+          ...statusToReturn,
+          status: 'animating',
+          message: videoResult.message || 'Generating video...',
+        })
       }
     }
 

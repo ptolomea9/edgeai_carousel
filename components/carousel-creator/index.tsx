@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, memo } from 'react'
+import { useState, useMemo, memo, useEffect } from 'react'
 import Link from 'next/link'
 import { Dithering } from '@paper-design/shaders-react'
 import { Loader2, Sparkles, Images, Mail } from 'lucide-react'
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
+import { MUSIC_BY_ART_STYLE, type ArtStyleKey } from '@/lib/n8n'
 import { HeroImageUpload } from './hero-image-upload'
 import { HeroImageEditor } from './hero-image-editor'
 import { SlideCountSelector } from './slide-count-selector'
@@ -84,6 +85,17 @@ export function CarouselCreator() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generationStatus, setGenerationStatus] =
     useState<GenerationStatus | null>(null)
+
+  // Auto-select first style-matched music track when video output is enabled
+  useEffect(() => {
+    // Only auto-select if video output is enabled and no music is currently selected
+    if ((outputType === 'video' || outputType === 'both') && selectedMusicTrackId === null) {
+      const styleTracks = MUSIC_BY_ART_STYLE[artStyle as ArtStyleKey] || []
+      if (styleTracks.length > 0 && styleTracks[0].fullUrl) {
+        setSelectedMusicTrackId(styleTracks[0].id)
+      }
+    }
+  }, [artStyle, outputType]) // Re-run when art style or output type changes
 
   // Handle slide count change
   const handleSlideCountChange = (count: number) => {

@@ -283,6 +283,50 @@ payload.elements = [{
 | Wait 30s (json2video) | 30s |
 | Wait 30s More | 30s |
 
+### Music URL Passthrough Fix (IMPLEMENTED - January 12, 2026)
+Fixed `musicUrl` being dropped in intermediate video workflow nodes, causing silent videos.
+
+**Problem**: ElevenLabs music tracks were not playing in json2video output despite frontend correctly selecting music and API resolving `musicTrackId` to `musicUrl`.
+
+**Root Cause**: The `musicUrl` field was extracted in "Extract Video Config" and passed through "Split Slides for Animation", but **7 intermediate nodes** in the animation pipeline were not passing it through:
+
+1. `Extract Task ID` - ❌ Missing musicUrl
+2. `Check Video Status` - ❌ Missing musicUrl
+3. `Check If Retry Needed` - ❌ Missing musicUrl
+4. `Format Complete Items` - ❌ Missing musicUrl
+5. `Extract Final URL` - ❌ Missing musicUrl
+6. `Extract Retry 2 URL` - ❌ Missing musicUrl
+7. `Extract Retry 3 URL` - ❌ Missing musicUrl
+
+By the time data reached "Collect Video Clips", `musicUrl` was `undefined`.
+
+**Fix**: Added `musicUrl` passthrough to all 7 nodes:
+```javascript
+// Example from Extract Task ID node:
+return {
+  json: {
+    taskId,
+    slideNumber: slideData.slideNumber,
+    // ... other fields ...
+    branding: slideData.branding,
+    musicUrl: slideData.musicUrl  // CRITICAL: Preserve for soundtrack
+  }
+};
+```
+
+**Data Flow After Fix**:
+```
+Webhook → Extract Video Config → Split Slides for Animation
+    ↓ (musicUrl in each item)
+Extract Task ID → Check Video Status → Check If Retry Needed
+    ↓ (musicUrl preserved)
+Format Complete Items / Retry nodes → Collect Video Clips
+    ↓ (musicUrl aggregated)
+Build json2video Payload → Creates audio element with musicUrl
+```
+
+**Key Lesson**: When adding new fields to n8n workflow data, ensure ALL intermediate code nodes pass them through. The "CRITICAL: Preserve" comment pattern helps identify important fields.
+
 ### Email Results Fix (IMPLEMENTED)
 Fixed "Format Final Result" node to include static image URLs in email:
 - Extracts slides with imageUrl from Collect Video Clips node
@@ -765,3 +809,94 @@ Update App Status
 - "Collect Video Clips" outputs `videoClips` array (not `slides`)
 - "Build json2video Payload" must read from `firstItem.videoClips`
 - Video clips contain: `slideNumber`, `videoUrl`, `imageUrl`, `headline`, `bodyText`
+
+### Supabase RLS Service Role Client Fix (IMPLEMENTED - January 12, 2026)
+Fixed frontend not receiving status updates, gallery/preview tiles not updating after generation.
+
+**Problem**: n8n callbacks to `/api/status/{id}` were silently failing - Supabase operations returned success but no data was actually written/read.
+
+**Root Cause**: Supabase Row Level Security (RLS) policies on `generations` table require `user_id = auth.uid()` for ALL operations:
+```sql
+-- All RLS policies on generations table:
+SELECT: user_id = auth.uid()
+INSERT: user_id = auth.uid()
+UPDATE: user_id = auth.uid()
+DELETE: user_id = auth.uid()
+```
+
+n8n callbacks use the **anonymous Supabase client** with no authentication context. Since `auth.uid()` returns `null` for unauthenticated requests, ALL operations were blocked by RLS.
+
+**Fix**: Updated `lib/supabase.ts` to use `getServerClient()` (service role key) instead of `getClient()` (anon key) for all server-side operations called by n8n callbacks:
+
+| Function | Purpose |
+|----------|---------|
+| `setStatusDetails()` | Store generation status from n8n |
+| `getStatusDetails()` | Retrieve status for polling |
+| `updateGeneration()` | Update status/video_url/zip_url |
+| `setVideoExecution()` | Track video workflow progress |
+| `getVideoExecution()` | Check video workflow status |
+| `addSlides()` | Insert slide records from n8n |
+| `setSlidesConfig()` | Store original slide text |
+| `getSlidesConfig()` | Retrieve slide text for gallery |
+| `uploadImageFromUrl()` | Upload images to Storage |
+| `uploadVideoFromUrl()` | Upload videos to Storage |
+
+**Implementation Pattern**:
+```typescript
+// Before (broken - RLS blocks anonymous client):
+export async function setStatusDetails(...) {
+  const client = getClient()  // ❌ Uses anon key
+  await client.from('generations').update(...)
+}
+
+// After (working - service role bypasses RLS):
+export async function setStatusDetails(...) {
+  if (!isServerConfigured) {
+    console.warn('Supabase server client not configured')
+    return false
+  }
+  const client = getServerClient()  // ✅ Uses service role key
+  await client.from('generations').update(...)
+}
+```
+
+**Environment Variable Required**:
+```bash
+# Add to .env.local
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+**Key Insight**: RLS silently fails - operations appear to succeed but return empty results. The service role key bypasses RLS entirely, which is appropriate for server-side operations where the app itself is the trusted actor.
+
+### Video Workflow Multi-Item Processing Fix (IMPLEMENTED - January 12, 2026)
+Fixed video workflow only processing 1 slide instead of all slides.
+
+**Problem**: When generating a 3-slide carousel with video, only 1 slide was animated and included in the final video.
+
+**Root Cause**: Multiple Code nodes in the video workflow used single-item patterns that only processed the first item:
+
+```javascript
+// BROKEN - only gets first item from referenced node
+const prevData = $('SomeNode').item.json;
+return { json: {...} };  // Returns only 1 item
+
+// FIXED - processes ALL items
+return $input.all().map((inputItem, index) => {
+  const allPrevData = $('SomeNode').all();
+  const prevData = allPrevData[index].json;
+  return { json: {...} };
+});
+```
+
+**Nodes Fixed** (7 total):
+| Node | Issue |
+|------|-------|
+| Extract Task ID | Used `$('Split Slides...').item.json` |
+| Check Video Status | Used `$('Extract Task ID').item.json` |
+| Check If Retry Needed | Returned single item |
+| Format Complete Items | Returned single item |
+| Extract Final URL | Used `$('IF Retry Needed').item.json` |
+| Extract Retry 2 URL | Used `$('IF Needs More Retry').item.json` |
+| Extract Retry 3 URL | Used `$('IF Needs Retry 3').item.json` |
+
+**Key Insight**: In n8n Code nodes, `$('NodeName').item.json` always returns the **first item** from that node, not the corresponding item for each input. When processing multiple items in parallel, you must use `$('NodeName').all()[index]` to get the matching item by index.
