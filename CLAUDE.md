@@ -156,7 +156,10 @@ When adding new fields to workflow data, ensure ALL intermediate code nodes pass
 
 **Video shows 1 slide**: n8n Code nodes using single-item patterns. Use `.all()[index]`.
 
-**Silent videos**: `musicUrl` dropped in intermediate nodes. Ensure passthrough.
+**Silent videos / Custom music not playing**: `musicUrl` must be passed through entire chain:
+  - Static workflow "Extract Config" must capture `input.musicUrl`
+  - Static workflow "Trigger Video Workflow" must include `musicUrl` in JSON body
+  - Video workflow uses `musicUrl` directly if provided, falls back to track ID lookup
 
 **Gallery shows all users**: Verify `userId` passed to `getGenerations()`.
 

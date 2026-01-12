@@ -60,22 +60,33 @@ export function GenerationDetail({
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
   }
 
-  const downloadImage = (url: string, filename: string) => {
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename
-    link.target = '_blank'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+  const downloadFile = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      const blobUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(blobUrl)
+    } catch (error) {
+      console.error('Download failed:', error)
+      // Fallback to opening in new tab
+      window.open(url, '_blank')
+    }
   }
 
-  const downloadAllImages = () => {
-    slides.forEach((slide, index) => {
-      setTimeout(() => {
-        downloadImage(slide.image_url, `slide-${index + 1}.png`)
-      }, index * 500)
-    })
+  const downloadAllImages = async () => {
+    for (let i = 0; i < slides.length; i++) {
+      await downloadFile(slides[i].image_url, `slide-${i + 1}.png`)
+      // Small delay between downloads to avoid overwhelming the browser
+      if (i < slides.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 300))
+      }
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -300,7 +311,7 @@ export function GenerationDetail({
             {hasVideo && (
               <Button
                 onClick={() =>
-                  downloadImage(generation.video_url!, 'carousel-video.mp4')
+                  downloadFile(generation.video_url!, 'carousel-video.mp4')
                 }
                 variant="outline"
                 className="w-full bg-black/50 border-white/20 text-gray-300 hover:bg-black/70 rounded-lg"

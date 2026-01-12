@@ -59,6 +59,26 @@ export function CarouselPreview({ status, className }: CarouselPreviewProps) {
     }
   }
 
+  const downloadVideo = async () => {
+    if (!status?.results?.videoUrl) return
+    try {
+      const response = await fetch(status.results.videoUrl)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'carousel-video.mp4'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Video download failed:', error)
+      // Fallback to opening in new tab if fetch fails
+      window.open(status.results.videoUrl, '_blank')
+    }
+  }
+
   // Empty state
   if (!status) {
     return (
@@ -307,7 +327,7 @@ export function CarouselPreview({ status, className }: CarouselPreviewProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open(status.results?.videoUrl, '_blank')}
+            onClick={downloadVideo}
             className="bg-black/50 border-gray-600 text-gray-300 hover:bg-black hover:text-white"
           >
             <Download className="size-3 mr-1" />
