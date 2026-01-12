@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Play, Pause, Music, Check, Sparkles, Loader2, Wand2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { MUSIC_TRACKS, MUSIC_BY_ART_STYLE, type ArtStyleKey } from '@/lib/n8n'
+import { MUSIC_TRACKS, MUSIC_BY_ART_STYLE, type ArtStyleKey } from '@/lib/music-tracks'
 import { ART_STYLE_LABELS } from './types'
 import type { MusicTrack, ArtStyle } from './types'
 
