@@ -181,6 +181,7 @@ export function CarouselCreator() {
           slideCount,
           artStyle,
           heroImage: heroImagePreview, // Pass hero image for character action generation
+          customStylePrompt: artStyle === 'custom' ? customStylePrompt : undefined,
         }),
       })
 
@@ -240,6 +241,7 @@ export function CarouselCreator() {
           bodyText: slide.bodyText,
           artStyle,
           totalSlides: slideCount,
+          customStylePrompt: artStyle === 'custom' ? customStylePrompt : undefined,
         }),
       })
 

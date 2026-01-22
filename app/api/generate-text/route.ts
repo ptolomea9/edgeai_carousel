@@ -2,9 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 
+/**
+ * Maps art styles to appropriate environment suggestions.
+ * This ensures GPT generates character actions with style-consistent backgrounds.
+ */
+function getStyleEnvironmentGuidance(artStyle: string, customStylePrompt?: string): string {
+  const styleEnvironments: Record<string, string> = {
+    synthwave: 'Use: neon-lit cityscapes, retro 80s Miami vibes, palm trees with neon glow, laser grids, sunset gradients, chrome surfaces',
+    anime: 'Use: Japanese-style backgrounds, cherry blossoms, school rooftops, shrine gates, dramatic skies, sakura petals',
+    '3d-pixar': 'Use: stylized colorful environments, whimsical toy-like worlds, vibrant saturated colors, rounded smooth surfaces',
+    watercolor: 'Use: soft dreamy landscapes, gardens, natural settings with flowing watercolor washes, gentle color bleeds',
+    minimalist: 'Use: clean solid color backgrounds, simple geometric shapes, minimal props, ample negative space',
+    comic: 'Use: urban cityscapes, action-packed dramatic settings, bold graphic backgrounds, strong shadows',
+    photorealistic: 'Use: realistic environments with natural lighting and detailed textures matching the subject context',
+  }
+
+  if (artStyle === 'custom' && customStylePrompt) {
+    // Extract environment hints from custom prompt
+    return `Use environments that match: "${customStylePrompt}". Adapt ALL scene settings to this style.`
+  }
+
+  return styleEnvironments[artStyle] || 'Use environments appropriate for the visual style'
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { topic, slideCount, artStyle, heroImage } = await request.json()
+    const { topic, slideCount, artStyle, heroImage, customStylePrompt } = await request.json()
 
     if (!topic || !topic.trim()) {
       return NextResponse.json(
@@ -26,17 +49,20 @@ export async function POST(request: NextRequest) {
 
     // Build the prompt based on whether we have a hero image
     // Enhanced for Kling 2.6 which supports 5-7 elements and prefers detailed, structured prompts
+    const styleGuidance = getStyleEnvironmentGuidance(artStyle, customStylePrompt)
     const characterActionInstructions = useVision
       ? `
 3. A character action describing how the character from the hero image should be posed in this slide's image. Use this exact structure:
    - Follow Scene → Subject → Action → Environment format
    - Be specific: "standing confidently with arms crossed" not just "standing"
    - Include camera framing: "medium shot", "close-up", "wide shot", "low angle", etc.
-   - Consider the ${artStyle} visual style for appropriate mood/atmosphere
+   - **CRITICAL: The environment/setting MUST match the "${artStyle}" visual style**
+   - ${styleGuidance}
+   - Do NOT use generic or conflicting environments (e.g., no farm/barn scenes for cyberpunk, no neon cities for watercolor)
    - Keep to 2-3 sentences maximum
    - Each slide should show variety/progression - make poses relate to the slide's message
    - Suggest dynamic or interesting angles when appropriate
-   - Example: "Medium shot, low angle. Owl perched majestically on ancient stone bridge, wings folded neatly against body, head tilted curiously toward viewer. Soft golden hour lighting with misty forest background."`
+   - Example for cyberpunk: "Medium shot, low angle. Character standing on rain-slicked street corner, neon signs reflecting off wet pavement, holographic advertisements flickering in background."`
       : ''
 
     const responseFormat = useVision

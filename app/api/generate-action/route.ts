@@ -2,9 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 
+/**
+ * Maps art styles to appropriate environment suggestions.
+ * This ensures GPT generates character actions with style-consistent backgrounds.
+ */
+function getStyleEnvironmentGuidance(artStyle: string, customStylePrompt?: string): string {
+  const styleEnvironments: Record<string, string> = {
+    synthwave: 'Use: neon-lit cityscapes, retro 80s Miami vibes, palm trees with neon glow, laser grids, sunset gradients, chrome surfaces',
+    anime: 'Use: Japanese-style backgrounds, cherry blossoms, school rooftops, shrine gates, dramatic skies, sakura petals',
+    '3d-pixar': 'Use: stylized colorful environments, whimsical toy-like worlds, vibrant saturated colors, rounded smooth surfaces',
+    watercolor: 'Use: soft dreamy landscapes, gardens, natural settings with flowing watercolor washes, gentle color bleeds',
+    minimalist: 'Use: clean solid color backgrounds, simple geometric shapes, minimal props, ample negative space',
+    comic: 'Use: urban cityscapes, action-packed dramatic settings, bold graphic backgrounds, strong shadows',
+    photorealistic: 'Use: realistic environments with natural lighting and detailed textures matching the subject context',
+  }
+
+  if (artStyle === 'custom' && customStylePrompt) {
+    // Extract environment hints from custom prompt
+    return `Use environments that match: "${customStylePrompt}". Adapt ALL scene settings to this style.`
+  }
+
+  return styleEnvironments[artStyle] || 'Use environments appropriate for the visual style'
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { heroImage, slideNumber, headline, bodyText, artStyle, totalSlides } =
+    const { heroImage, slideNumber, headline, bodyText, artStyle, totalSlides, customStylePrompt } =
       await request.json()
 
     if (!heroImage) {
@@ -35,6 +58,8 @@ export async function POST(request: NextRequest) {
         ? slideContext.join('\n')
         : 'No content provided yet'
 
+    const styleGuidance = getStyleEnvironmentGuidance(artStyle || 'default', customStylePrompt)
+
     const prompt = `You are a visual director creating character poses for a ${totalSlides}-slide carousel advertisement.
 
 Look at the hero image to understand the character/subject.
@@ -48,7 +73,10 @@ Requirements:
 - Use Scene → Subject → Action → Environment structure
 - Be specific: "standing confidently with arms crossed" not just "standing"
 - Include camera framing suggestions: "medium shot", "close-up", "wide shot", etc.
-- Consider the ${artStyle || 'default'} visual style
+- **CRITICAL: The environment/background MUST match the "${artStyle || 'default'}" visual style**
+- ${styleGuidance}
+- The visual style environment is MORE important than what might seem "natural" for the subject
+- Do NOT use environments that conflict with the style (e.g., no farm/barn scenes for cyberpunk)
 - Keep to 2-3 sentences maximum
 - Make the pose relate to the slide's message/theme
 - Suggest dynamic or interesting angles when appropriate
