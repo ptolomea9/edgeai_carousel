@@ -19,55 +19,63 @@ const stylePrompts = {
 };
 
 // Text style mapping for text-baked images - MATCHES json2video overlay styling
-// v4.0: Restructured for compact prompts with explicit colors
+// v5.0: Added bgOpacity and enhanced effect descriptions for consistency
 const textStylePrompts = {
   'synthwave': {
     font: 'ORBITRON futuristic blocky',
     color: '#FF00FF magenta',
-    effects: 'neon glow',
-    bgColor: 'black'
+    effects: 'neon glow, 2px outer glow',
+    bgColor: 'black',
+    bgOpacity: '70%'
   },
   'anime': {
     font: 'BANGERS bold comic',
     color: '#FF6B6B coral red',
-    effects: 'black outline',
-    bgColor: 'black'
+    effects: '2px black outline',
+    bgColor: 'black',
+    bgOpacity: '60%'
   },
   '3d-pixar': {
     font: 'FREDOKA ONE rounded bubble',
     color: '#FFD93D golden yellow',
-    effects: 'soft shadow',
-    bgColor: 'black'
+    effects: '3px soft drop shadow',
+    bgColor: 'black',
+    bgOpacity: '50%'
   },
   'watercolor': {
     font: 'PACIFICO elegant script',
     color: '#5C4033 warm brown',
-    effects: 'white halo',
-    bgColor: 'white'
+    effects: '2px white halo',
+    bgColor: 'cream white',
+    bgOpacity: '70%'
   },
   'minimalist': {
     font: 'MONTSERRAT clean sans-serif',
     color: '#1A1A1A near black',
     effects: 'none',
-    bgColor: 'white'
+    bgColor: 'white',
+    bgOpacity: '80%'
   },
   'comic': {
     font: 'BANGERS bold comic',
     color: '#FFFF00 bright yellow',
-    effects: 'thick black outline',
-    bgColor: 'black'
+    effects: '3px thick black outline',
+    bgColor: 'black',
+    bgOpacity: '70%'
   },
   'photorealistic': {
     font: 'PLAYFAIR DISPLAY elegant serif',
     color: '#FFFFFF white',
-    effects: 'dark shadow',
-    bgColor: 'black'
+    effects: '4px dark drop shadow',
+    bgColor: 'black',
+    bgOpacity: '60%'
   },
   'custom': {
     font: 'ROBOTO clean sans-serif',
     color: '#FFFFFF white',
-    effects: 'subtle shadow',
-    bgColor: 'black'
+    effects: '2px subtle shadow',
+    bgColor: 'black',
+    bgOpacity: '60%'
   }
 };
 
@@ -171,30 +179,62 @@ Position: Bottom-right corner with slight padding from edges.
 Style: Subtle, semi-transparent watermark, should not distract from main content.`;
   }
 
-// v4.0: Enhanced text prompts with anatomical lock and explicit colors
+// v5.0: Enhanced text prompts with exact positioning for consistency
 // Anatomical lock prevents extra appendages (wings, limbs, tails)
-const anatomicalLock = 'ANATOMICAL LOCK: Character MUST have EXACT same body parts as reference - NO extra wings, limbs, tails, or heads. NO duplicating or morphing body parts.';
+const anatomicalLock = 'ANATOMICAL LOCK: Character MUST have EXACT same body parts as reference - NO extra wings, limbs, tails, or heads. NO duplicating or morphing body parts. No mouth movements - characters must not look like they are speaking in any way';
 
-// Build compact branding instruction
+// Build branding instruction with exact positioning
 let brandingInstruction = '';
 if (webhookData.branding && webhookData.branding.text) {
   const brandText = webhookData.branding.text.replace(/"/g, "'");
-  brandingInstruction = `\n- BRANDING (bottom-right): "${brandText}" - small watermark, same color`;
+  brandingInstruction = `
+
+BRANDING WATERMARK:
+- Text: "${brandText}"
+- Position: BOTTOM-RIGHT corner, 5% padding from edges
+- Size: 40% of headline size
+- Style: Same font family, same color, ${textStyle.bgOpacity} opacity`;
 }
 
+// v5.0: Strict positioning and sizing specifications for consistent text styling
 const textPrompt = `${stylePrompt}
 
 Scene: ${characterDescription} ${characterAction}.
 
 ${anatomicalLock}
 
-TEXT OVERLAYS (ALL SAME STYLE):
-- HEADLINE (top): "${safeHeadline}"
-  Font: ${textStyle.font}, Color: ${textStyle.color}, LARGE BOLD, ${textStyle.effects}
-- BODY (center): "${safeBodyText}"
-  Font: ${textStyle.font}, Color: ${textStyle.color}, BOLD, ${textStyle.effects}${brandingInstruction}
+=== TEXT OVERLAY SPECIFICATIONS (MUST FOLLOW EXACTLY) ===
 
-ALL text: Same font, same color (${textStyle.color}), semi-transparent ${textStyle.bgColor} background.
+HEADLINE:
+- Text: "${safeHeadline}"
+- Position: TOP of image, 8% from top edge, HORIZONTALLY CENTERED
+- Font: ${textStyle.font}, UPPERCASE
+- Size: LARGE (approximately 6% of image height)
+- Color: ${textStyle.color}
+- Effect: ${textStyle.effects}
+- Background: Rounded rectangle, ${textStyle.bgColor} at ${textStyle.bgOpacity} opacity
+- Padding: 15px horizontal, 10px vertical around text
+
+BODY TEXT:
+- Text: "${safeBodyText}"
+- Position: UPPER-CENTER, 25% from top edge, HORIZONTALLY CENTERED
+- Font: ${textStyle.font}
+- Size: MEDIUM (approximately 3.5% of image height)
+- Color: ${textStyle.color}
+- Effect: ${textStyle.effects}
+- Background: Same style as headline - rounded rectangle, ${textStyle.bgColor} at ${textStyle.bgOpacity} opacity
+- Padding: 12px horizontal, 8px vertical around text
+- Max width: 85% of image width, text wraps if needed${brandingInstruction}
+
+CONSISTENCY RULES (CRITICAL):
+- ALL slides MUST use IDENTICAL text styling
+- Font family: ALWAYS ${textStyle.font}
+- Font color: ALWAYS ${textStyle.color}
+- Background style: ALWAYS rounded rectangles with ${textStyle.bgOpacity} ${textStyle.bgColor}
+- Text MUST be clearly readable - ensure sufficient contrast
+- NO decorative borders, frames, or embellishments around text
+- NO varying font sizes between slides
+- Text backgrounds should be simple, clean, and uniform
 ${styleReinforcement}`;
 
   return {
